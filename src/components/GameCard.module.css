@@ -1,0 +1,155 @@
+.card {
+    position: relative;
+    background-color: var(--bg-card);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
+    border: 1px solid var(--border);
+    cursor: pointer;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    border-color: var(--border-highlight);
+}
+
+.cover {
+    width: 100%;
+    aspect-ratio: 3/4;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+
+.platformTag {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-main);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.content {
+    padding: 12px;
+}
+
+.title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.progressBarBack {
+    height: 4px;
+    background: var(--bg-subtle);
+    border-radius: var(--radius-full);
+    margin-top: 8px;
+    overflow: hidden;
+}
+
+.progressBarFill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: var(--radius-full);
+}
+
+/* List View Styles */
+.list {
+    display: flex;
+    height: 120px;
+    align-items: center;
+    padding: 0;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    transition: transform 0.2s var(--ease-out), background 0.2s;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.list:hover {
+    background: var(--bg-card-hover);
+    transform: translateX(4px);
+    border-color: var(--border-highlight);
+}
+
+.list .cover {
+    width: 120px;
+    height: 100%;
+    aspect-ratio: auto;
+    flex-shrink: 0;
+}
+
+.list .platformTag {
+    top: 8px;
+    left: 8px;
+    right: auto;
+}
+
+.list .content {
+    flex: 1;
+    padding: 0 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.list .title {
+    font-size: 1.2rem;
+    margin-bottom: 0.25rem;
+}
+
+.list .meta {
+    display: none;
+    /* Hide default meta in list view, use custom layout */
+}
+
+/* Custom list layout children */
+.listInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.listStats {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.statItem {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.statLabel {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.statValue {
+    font-weight: 600;
+    color: var(--text-main);
+}
