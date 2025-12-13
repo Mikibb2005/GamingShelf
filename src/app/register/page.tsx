@@ -52,7 +52,7 @@ export default function RegisterPage() {
                     <span className="title-gradient">Crear Cuenta</span>
                 </h1>
                 <p style={{ color: 'var(--text-muted)', textAlign: 'center', marginBottom: '2rem' }}>
-                    Únete a G-TRACKER
+                    Todo tu juego en un lugar
                 </p>
 
                 {error && (
@@ -120,7 +120,9 @@ export default function RegisterPage() {
                             type="password"
                             name="password"
                             required
-                            minLength={6}
+                            minLength={8}
+                            pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$"
+                            title="Mínimo 8 caracteres, con mayúscula, minúscula y número"
                             style={{
                                 width: '100%',
                                 padding: '0.75rem 1rem',
@@ -130,8 +132,11 @@ export default function RegisterPage() {
                                 color: 'var(--text-main)',
                                 fontSize: '1rem'
                             }}
-                            placeholder="Mínimo 6 caracteres"
+                            placeholder="Mínimo 8 caracteres, mayúscula, minúscula y número"
                         />
+                        <small style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                            Debe contener mayúscula, minúscula y número
+                        </small>
                     </div>
 
                     <button

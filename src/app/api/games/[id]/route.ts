@@ -52,9 +52,8 @@ export async function GET(
         coverUrl: catalogData?.coverUrl || game.coverUrl, // Use catalog cover if available
         developer: catalogData?.developer || null,
         publisher: catalogData?.publisher || null,
-        // Prefer OpenCritic score, fallback to IGDB rating
-        criticScore: catalogData?.opencriticScore || catalogData?.metacritic || null,
-        opencriticId: catalogData?.opencriticId || null,
+        // Only show scraped Metacritic score (no IGDB fallback)
+        metacriticScore: catalogData?.opencriticScore && catalogData.opencriticScore > 0 ? catalogData.opencriticScore : null,
         catalogGenres: catalogData?.genres || null,
     };
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { decrypt } from "@/lib/encryption";
 
 const STEAM_API_BASE = "https://api.steampowered.com";
 
@@ -24,8 +25,15 @@ export async function POST() {
     }
 
     try {
+        // Decrypt the API key
+        const apiKey = decrypt(steamAccount.apiKey);
+
+        if (!apiKey) {
+            return NextResponse.json({ error: "Error al descifrar credenciales de Steam" }, { status: 500 });
+        }
+
         // Fetch owned games from Steam API
-        const url = `${STEAM_API_BASE}/IPlayerService/GetOwnedGames/v0001/?key=${steamAccount.apiKey}&steamid=${steamAccount.accountId}&format=json&include_appinfo=1&include_played_free_games=1`;
+        const url = `${STEAM_API_BASE}/IPlayerService/GetOwnedGames/v0001/?key=${apiKey}&steamid=${steamAccount.accountId}&format=json&include_appinfo=1&include_played_free_games=1`;
 
         const response = await fetch(url);
 
@@ -39,66 +47,53 @@ export async function POST() {
             return NextResponse.json({ error: "No se encontraron juegos o perfil privado" }, { status: 400 });
         }
 
-        let imported = 0;
+        const existing = await prisma.game.findMany({
+            where: { userId: session.user.id, source: "Steam" },
+            select: { sourceId: true, id: true }
+        });
+        const existingMap = new Map(existing.map((g: any) => [g.sourceId, g.id]));
 
+        const ignored = await prisma.ignoredGame.findMany({
+            where: { userId: session.user.id, source: "Steam" },
+            select: { sourceId: true }
+        });
+        const ignoredSet = new Set(ignored.map((g: any) => g.sourceId));
+
+        const candidates: any[] = [];
+
+        // Scan only (Read-only)
         for (const game of data.response.games) {
-            // Check if game already exists
-            const existing = await prisma.game.findFirst({
-                where: {
-                    userId: session.user.id,
-                    sourceId: String(game.appid),
-                    source: "Steam"
-                }
+            const sid = String(game.appid);
+            let state = 'new';
+
+            if (existingMap.has(sid)) {
+                state = 'library';
+            } else if (ignoredSet.has(sid)) {
+                state = 'ignored';
+            }
+
+            candidates.push({
+                source: "Steam",
+                sourceId: sid,
+                title: game.name,
+                platform: "PC",
+                coverUrl: `https://steamcdn-a.akamaihd.net/steam/apps/${game.appid}/library_600x900_2x.jpg`,
+                state // 'library', 'ignored', 'new'
             });
-
-            // Calculate progress based on playtime (simple heuristic)
-            const playtimeHours = Math.round(game.playtime_forever / 60);
-            let status = "Backlog";
-            let progress = 0;
-
-            if (playtimeHours > 0) {
-                status = "Playing";
-                // Estimate progress based on playtime (cap at 100)
-                progress = Math.min(Math.round(playtimeHours / 20 * 100), 100);
-                if (progress >= 100) {
-                    status = "Completed";
-                }
-            }
-
-            if (!existing) {
-                await prisma.game.create({
-                    data: {
-                        userId: session.user.id,
-                        sourceId: String(game.appid),
-                        source: "Steam",
-                        platform: "PC",
-                        title: game.name,
-                        coverUrl: `https://steamcdn-a.akamaihd.net/steam/apps/${game.appid}/library_600x900_2x.jpg`,
-                        status,
-                        progress,
-                        releaseYear: 2020 // Steam API doesn't provide release year easily
-                    }
-                });
-                imported++;
-            } else {
-                // Update existing game
-                await prisma.game.update({
-                    where: { id: existing.id },
-                    data: {
-                        status,
-                        progress
-                    }
-                });
-            }
         }
 
         return NextResponse.json({
             success: true,
-            imported,
-            total: data.response.games.length
+            updated: 0, // No auto-updates
+            candidates,
+            total: data.response.games.length,
+            message: `Escaneo completado. ${candidates.length} juegos encontrados.`
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Steam Sync error:", error);
-        return NextResponse.json({ error: "Error al sincronizar" }, { status: 500 });
+        return NextResponse.json({
+            error: "Error al sincronizar",
+            details: error.message
+        }, { status: 500 });
     }
 }

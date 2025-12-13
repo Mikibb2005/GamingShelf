@@ -5,194 +5,198 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import GameCard from "@/components/GameCard";
 
-interface PopularGame {
-  title: string;
-  platform: string;
-  coverUrl: string | null;
-  playerCount: number;
-}
-
-interface RecentGame {
-  id: string;
-  title: string;
-  platform: string;
-  coverUrl: string | null;
-  status: string;
-  progress: number;
-  user: { username: string };
-}
-
 export default function Home() {
   const { data: session } = useSession();
-  const [popularGames, setPopularGames] = useState<PopularGame[]>([]);
-  const [recentGames, setRecentGames] = useState<RecentGame[]>([]);
+  const [data, setData] = useState<any>({ featured: [], upcoming: [], playing: [], reviews: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function loadData() {
+    async function load() {
       try {
-        const [popularRes, recentRes] = await Promise.all([
-          fetch('/api/games/popular'),
-          fetch('/api/games/recent')
-        ]);
-
-        if (popularRes.ok) setPopularGames(await popularRes.json());
-        if (recentRes.ok) setRecentGames(await recentRes.json());
+        const res = await fetch('/api/home');
+        if (res.ok) {
+          setData(await res.json());
+        }
       } catch (e) {
         console.error(e);
       } finally {
         setLoading(false);
       }
     }
-    loadData();
+    load();
   }, []);
 
   const userName = session?.user?.name || "Jugador";
 
+  if (loading) {
+    return <div className="container" style={{ paddingTop: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>Cargando Portada...</div>;
+  }
+
   return (
-    <div className="container" style={{ paddingTop: '2rem' }}>
+    <div className="container" style={{ paddingTop: '2rem', paddingBottom: '4rem' }}>
 
       {/* Header */}
-      <header style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: 800 }}>
-          Hola, <span className="title-gradient">{userName}</span>
-        </h1>
-        <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-          Bienvenido a G-TRACKER. Explora tu colección y descubre nuevos juegos.
-        </p>
+      <header style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'end' }}>
+        <div>
+          <h1 style={{ fontSize: '2.5rem', fontWeight: 800, lineHeight: 1 }}>
+            Hola, <span className="title-gradient">{userName}</span>
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem', fontSize: '1.1rem' }}>
+            ¿A qué jugamos hoy?
+          </p>
+        </div>
+        {!session && (
+          <Link href="/login" className="btn-primary">Iniciar Sesión</Link>
+        )}
       </header>
 
-      {/* Quick Actions */}
-      <section style={{ marginBottom: '3rem' }}>
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-          <Link href="/library" className="glass-panel" style={{
-            padding: '1.5rem 2rem',
-            borderRadius: 'var(--radius-md)',
-            textDecoration: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '1rem',
-            flex: 1,
-            minWidth: '200px'
-          }}>
-            <span style={{ fontSize: '2rem' }}>🎮</span>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>Mi Biblioteca</div>
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Ver todos tus juegos</div>
-            </div>
-          </Link>
-
-          <Link href="/forum" className="glass-panel" style={{
-            padding: '1.5rem 2rem',
-            borderRadius: 'var(--radius-md)',
-            textDecoration: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '1rem',
-            flex: 1,
-            minWidth: '200px'
-          }}>
-            <span style={{ fontSize: '2rem' }}>💬</span>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>Foro</div>
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Únete a la comunidad</div>
-            </div>
-          </Link>
-
-          {session?.user && (
-            <Link href="/settings" className="glass-panel" style={{
-              padding: '1.5rem 2rem',
-              borderRadius: 'var(--radius-md)',
-              textDecoration: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1rem',
-              flex: 1,
-              minWidth: '200px'
+      {/* 1. NEW RELEASES & TRENDING */}
+      <section style={{ marginBottom: '4rem' }}>
+        <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          🔥 Tendencias y Novedades
+        </h2>
+        <div style={{
+          display: 'flex', gap: '1.5rem', overflowX: 'auto', paddingBottom: '1rem',
+          scrollbarWidth: 'none', msOverflowStyle: 'none'
+        }}>
+          {data.featured.map((game: any) => (
+            <Link href={`/catalog/${game.id}`} key={game.id} style={{
+              minWidth: '220px', width: '220px', textDecoration: 'none', color: 'inherit',
+              flexShrink: 0
             }}>
-              <span style={{ fontSize: '2rem' }}>🔗</span>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>Vincular Cuentas</div>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Steam, RetroAchievements</div>
+              <div style={{
+                aspectRatio: '3/4',
+                borderRadius: 'var(--radius-md)',
+                background: `url(${game.coverUrl}) center/cover`,
+                marginBottom: '0.75rem',
+                boxShadow: 'var(--shadow-md)',
+                position: 'relative'
+              }}>
+                {game.opencriticScore && (
+                  <div style={{
+                    position: 'absolute', top: 10, right: 10,
+                    background: game.opencriticScore >= 85 ? '#66cc33' : '#ffcc33',
+                    color: 'black', fontWeight: 800, padding: '4px 8px', borderRadius: '4px',
+                    boxShadow: '0 2px 10px rgba(0,0,0,0.5)'
+                  }}>
+                    {game.opencriticScore}
+                  </div>
+                )}
+              </div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{game.title}</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                <span>{new Date(game.releaseDate).getFullYear()}</span>
+                <span>{game.developer}</span>
               </div>
             </Link>
-          )}
-        </div>
-      </section>
-
-      {/* Popular Games */}
-      <section style={{ marginBottom: '3rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <h3 style={{ fontSize: '1.5rem', fontWeight: 700 }}>🔥 Juegos Populares</h3>
-        </div>
-
-        {loading ? (
-          <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>Cargando...</div>
-        ) : popularGames.length > 0 ? (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-            gap: '1.5rem'
-          }}>
-            {popularGames.slice(0, 8).map((game, i) => (
-              <div key={i} className="glass-panel" style={{
-                padding: '1rem',
+          ))}
+          {data.upcoming.map((game: any) => (
+            <Link href={`/catalog/${game.id}`} key={game.id} style={{
+              minWidth: '220px', width: '220px', textDecoration: 'none', color: 'inherit',
+              flexShrink: 0, opacity: 0.8
+            }}>
+              <div style={{
+                aspectRatio: '3/4',
                 borderRadius: 'var(--radius-md)',
-                textAlign: 'center'
+                background: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${game.coverUrl}) center/cover`,
+                marginBottom: '0.75rem',
+                boxShadow: 'var(--shadow-md)',
+                position: 'relative',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>
-                <div style={{
-                  aspectRatio: '3/4',
-                  background: game.coverUrl ? `url(${game.coverUrl}) center/cover` : 'linear-gradient(135deg, var(--primary), var(--bg-subtle))',
-                  borderRadius: 'var(--radius-sm)',
-                  marginBottom: '0.5rem'
-                }} />
-                <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.25rem' }}>{game.title}</div>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{game.platform}</div>
-                <div style={{ color: 'var(--primary)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                  👤 {game.playerCount} jugadores
-                </div>
+                <span style={{ border: '1px solid white', padding: '0.5rem 1rem', borderRadius: '30px', fontWeight: 600 }}>PRÓXIMAMENTE</span>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>
-            No hay datos todavía. ¡Conecta tus cuentas para empezar!
-          </div>
-        )}
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{game.title}</h3>
+              <div style={{ fontSize: '0.85rem', color: 'var(--primary)' }}>
+                {new Date(game.releaseDate).toLocaleDateString()}
+              </div>
+            </Link>
+          ))}
+        </div>
       </section>
 
-      {/* Recent Activity */}
-      <section>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <h3 style={{ fontSize: '1.5rem', fontWeight: 700 }}>⚡ Actividad Reciente</h3>
-          <Link href="/library" style={{ color: 'var(--primary)', fontWeight: 600, fontSize: '0.9rem' }}>Ver todo</Link>
-        </div>
-
-        {loading ? (
-          <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>Cargando...</div>
-        ) : recentGames.length > 0 ? (
+      {/* 2. PLAYING NOW */}
+      <section style={{ marginBottom: '4rem' }}>
+        <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          🕹️ Jugando Ahora
+        </h2>
+        {data.playing.length > 0 ? (
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-            gap: '1.5rem'
+            display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1.5rem'
           }}>
-            {recentGames.slice(0, 8).map((game) => (
+            {data.playing.map((game: any) => (
               <GameCard
                 key={game.id}
                 id={game.id}
                 title={game.title}
+                coverGradient={game.coverUrl}
                 platform={game.platform}
                 progress={game.progress}
-                coverGradient={game.coverUrl || undefined}
                 status={game.status}
               />
             ))}
           </div>
         ) : (
-          <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>
-            No hay actividad reciente
+          <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', borderRadius: 'var(--radius-md)' }}>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '1.1rem' }}>
+              No estás jugando a nada actualmente.
+            </p>
+            <Link href="/library" className="btn-primary">
+              Ir a Biblioteca y marcar juego como "Jugando"
+            </Link>
           </div>
         )}
+      </section>
+
+      {/* 3. RECENT REVIEWS */}
+      <section>
+        <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          💬 Reseñas de la Comunidad
+        </h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+          {data.reviews.map((review: any) => (
+            <div key={review.id} className="glass-panel" style={{ padding: '1.5rem', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* User & Game Header */}
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <div style={{
+                  width: '50px', height: '50px',
+                  background: `url(${review.game.coverUrl}) center/cover`,
+                  borderRadius: 'var(--radius-sm)',
+                  flexShrink: 0
+                }}></div>
+                <div style={{ overflow: 'hidden' }}>
+                  <div style={{ fontWeight: 700, fontSize: '1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {review.user.username}
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                    en <span style={{ color: 'var(--primary)' }}>{review.game.title}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div style={{
+                background: 'var(--bg-subtle)', padding: '1rem', borderRadius: 'var(--radius-sm)',
+                fontStyle: 'italic', lineHeight: 1.5, color: '#ddd',
+                flex: 1
+              }}>
+                "{review.content}"
+              </div>
+
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textAlign: 'right' }}>
+                {new Date(review.createdAt).toLocaleDateString()}
+              </div>
+            </div>
+          ))}
+          {data.reviews.length === 0 && (
+            <div className="glass-panel" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', borderRadius: 'var(--radius-md)' }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '1rem' }}>
+                Aún no hay reseñas.
+              </p>
+              <p style={{ color: 'var(--text-secondary)' }}>¡Sé el primero en comentar un juego!</p>
+            </div>
+          )}
+        </div>
       </section>
 
     </div>

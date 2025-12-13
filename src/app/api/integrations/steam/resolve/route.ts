@@ -2,16 +2,15 @@ import { NextResponse } from "next/server";
 
 const STEAM_API_BASE = "https://api.steampowered.com";
 
-export async function GET(request: Request) {
-    const { searchParams } = new URL(request.url);
-    const vanityUrl = searchParams.get("vanityUrl");
-    const apiKey = searchParams.get("apiKey");
-
-    if (!vanityUrl || !apiKey) {
-        return NextResponse.json({ error: "Faltan parámetros" }, { status: 400 });
-    }
-
+// Changed from GET to POST to avoid API key in URL/logs
+export async function POST(request: Request) {
     try {
+        const { vanityUrl, apiKey } = await request.json();
+
+        if (!vanityUrl || !apiKey) {
+            return NextResponse.json({ error: "Faltan parámetros" }, { status: 400 });
+        }
+
         // Call Steam API to resolve vanity URL
         const url = `${STEAM_API_BASE}/ISteamUser/ResolveVanityURL/v0001/?key=${apiKey}&vanityurl=${vanityUrl}`;
 

@@ -96,18 +96,18 @@ export default function GameDetailPage() {
                             {game.status}
                         </span>
                         <span>{game.progress}% Completado</span>
-                        {game.criticScore && (
-                            <span style={{
-                                background: game.criticScore >= 75 ? '#66cc33' : game.criticScore >= 50 ? '#ffcc33' : '#ff3333',
-                                color: 'black',
-                                padding: '4px 10px',
-                                borderRadius: 'var(--radius-sm)',
-                                fontWeight: 700,
-                                fontSize: '0.9rem'
-                            }}>
-                                {game.criticScore}
-                            </span>
-                        )}
+                        <span style={{
+                            background: game.metacriticScore
+                                ? (game.metacriticScore >= 75 ? '#66cc33' : game.metacriticScore >= 50 ? '#ffcc33' : '#ff3333')
+                                : '#666',
+                            color: game.metacriticScore ? 'black' : '#aaa',
+                            padding: '4px 10px',
+                            borderRadius: 'var(--radius-sm)',
+                            fontWeight: 700,
+                            fontSize: '0.9rem'
+                        }}>
+                            {game.metacriticScore || '-'}
+                        </span>
                     </div>
                 </div>
             </div>

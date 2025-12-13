@@ -35,7 +35,7 @@ export default function Navigation() {
         <nav className={styles.nav}>
             <div className={styles.logo}>
                 <Link href="/" style={{ textDecoration: 'none' }}>
-                    <span className="title-gradient">G/TRACKER</span>
+                    <span className="title-gradient">GamingShelf</span>
                 </Link>
             </div>
 

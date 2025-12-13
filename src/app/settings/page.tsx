@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import SyncModal from "@/components/SyncModal";
+import IgnoredGamesModal from "@/components/IgnoredGamesModal";
 
 export default function SettingsPage() {
     const { data: session, status } = useSession();
@@ -18,6 +20,11 @@ export default function SettingsPage() {
     const [syncing, setSyncing] = useState("");
     const [message, setMessage] = useState("");
     const [linkedAccounts, setLinkedAccounts] = useState<any[]>([]);
+
+    // Manual Sync State
+    const [showModal, setShowModal] = useState(false);
+    const [showIgnoredModal, setShowIgnoredModal] = useState(false);
+    const [candidates, setCandidates] = useState<any[]>([]);
 
     useEffect(() => {
         if (status === "unauthenticated") {
@@ -59,7 +66,11 @@ export default function SettingsPage() {
 
             // If Steam and not a 64-bit ID, try to resolve vanity URL
             if (provider === "Steam" && !/^\d{17}$/.test(accountId)) {
-                const resolveRes = await fetch(`/api/integrations/steam/resolve?vanityUrl=${accountId}&apiKey=${apiKey}`);
+                const resolveRes = await fetch("/api/integrations/steam/resolve", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ vanityUrl: accountId, apiKey })
+                });
                 const resolveData = await resolveRes.json();
 
                 if (resolveData.steamId) {
@@ -98,7 +109,7 @@ export default function SettingsPage() {
             }
 
             // Save other providers
-            const res = await fetch("/api/settings/link-account", {
+            const res = await fetch("/api/settings/accounts", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ provider, accountId: resolvedAccountId, apiKey })
@@ -129,14 +140,52 @@ export default function SettingsPage() {
             const data = await res.json();
 
             if (res.ok) {
-                setMessage(`✅ Sincronizados ${data.imported} juegos de ${provider}`);
+                if (data.candidates && data.candidates.length > 0) {
+                    setCandidates(data.candidates);
+                    setShowModal(true);
+                } else {
+                    setMessage(`✅ ${data.message || 'Sincronización completada'}`);
+                }
             } else {
-                setMessage(`❌ ${data.error}`);
+                setMessage(`❌ ${data.error}${data.details ? `: ${data.details}` : ''}`);
             }
-        } catch (e) {
-            setMessage("❌ Error al sincronizar");
+        } catch (e: any) {
+            setMessage(`❌ Error al conectar: ${e.message || 'Desconocido'}`);
+            console.error(e);
         } finally {
             setSyncing("");
+        }
+    };
+
+    const handleConfirmSync = async (selected: any[], ignored: any[]) => {
+        setShowModal(false);
+        setLoading(true);
+        setMessage("Guardando selección...");
+
+        try {
+            // Batch Add
+            if (selected.length > 0) {
+                await fetch("/api/games/batch", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ games: selected })
+                });
+            }
+
+            // Batch Ignore
+            if (ignored.length > 0) {
+                await fetch("/api/games/ignore", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ games: ignored })
+                });
+            }
+
+            setMessage(`✅ ${selected.length} juegos añadidos. ${ignored.length} ignorados.`);
+        } catch (e) {
+            setMessage("❌ Error al guardar selección");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -201,7 +250,7 @@ export default function SettingsPage() {
                     </div>
                     <div style={{ marginBottom: '1rem' }}>
                         <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>API Key</label>
-                        <input type="password" value={raApiKey} onChange={(e) => setRaApiKey(e.target.value)} required={!hasRA} placeholder={hasRA ? "(configurada)" : ""} style={inputStyle} />
+                        <input type="password" value={raApiKey} onChange={(e) => setRaApiKey(e.target.value)} required placeholder={hasRA ? "(Introduce para actualizar)" : ""} style={inputStyle} />
                     </div>
                     <div style={{ display: 'flex', gap: '1rem' }}>
                         <button type="submit" className="btn-primary" disabled={loading}>{hasRA ? 'Actualizar' : 'Vincular'}</button>
@@ -228,7 +277,7 @@ export default function SettingsPage() {
                     </div>
                     <div style={{ marginBottom: '1rem' }}>
                         <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>API Key</label>
-                        <input type="password" value={steamApiKey} onChange={(e) => setSteamApiKey(e.target.value)} required={!hasSteam} placeholder={hasSteam ? "(configurada)" : ""} style={inputStyle} />
+                        <input type="password" value={steamApiKey} onChange={(e) => setSteamApiKey(e.target.value)} required placeholder={hasSteam ? "(Introduce para actualizar)" : ""} style={inputStyle} />
                     </div>
                     <div style={{ display: 'flex', gap: '1rem' }}>
                         <button type="submit" className="btn-primary" disabled={loading}>{hasSteam ? 'Actualizar' : 'Vincular'}</button>
@@ -262,7 +311,7 @@ export default function SettingsPage() {
                         <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
                             API Key (OpenXBL)
                         </label>
-                        <input type="password" value={xboxApiKey} onChange={(e) => setXboxApiKey(e.target.value)} required={!hasXbox} placeholder={hasXbox ? "(configurada)" : ""} style={inputStyle} />
+                        <input type="password" value={xboxApiKey} onChange={(e) => setXboxApiKey(e.target.value)} required placeholder={hasXbox ? "(Introduce para actualizar)" : ""} style={inputStyle} />
                     </div>
                     <div style={{ display: 'flex', gap: '1rem' }}>
                         <button type="submit" className="btn-primary" disabled={loading}>{hasXbox ? 'Actualizar' : 'Vincular'}</button>
@@ -274,9 +323,27 @@ export default function SettingsPage() {
             {/* Privacy Section */}
             <PrivacySection linkedAccounts={linkedAccounts} setMessage={setMessage} />
 
+            <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                <button onClick={() => setShowIgnoredModal(true)} style={{ color: 'var(--text-muted)', textDecoration: 'underline', fontSize: '0.9rem' }}>
+                    Gestionar juegos ignorados
+                </button>
+            </div>
+
             <div style={{ textAlign: 'center', marginTop: '2rem' }}>
                 <a href="/library" style={{ color: 'var(--primary)' }}>← Volver a la biblioteca</a>
             </div>
+
+            <SyncModal
+                isOpen={showModal}
+                candidates={candidates}
+                onConfirm={handleConfirmSync}
+                onCancel={() => setShowModal(false)}
+            />
+
+            <IgnoredGamesModal
+                isOpen={showIgnoredModal}
+                onClose={() => setShowIgnoredModal(false)}
+            />
         </div>
     );
 }

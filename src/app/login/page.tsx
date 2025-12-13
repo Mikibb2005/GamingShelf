@@ -46,7 +46,7 @@ export default function LoginPage() {
                     <span className="title-gradient">Iniciar Sesión</span>
                 </h1>
                 <p style={{ color: 'var(--text-muted)', textAlign: 'center', marginBottom: '2rem' }}>
-                    Accede a tu cuenta de G-TRACKER
+                    Todo tu juego en un lugar
                 </p>
 
                 {error && (

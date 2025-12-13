@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import CatalogGameDetail from "@/components/CatalogGameDetail";
 
 export default function CatalogPage() {
     const [games, setGames] = useState<any[]>([]);
@@ -10,7 +11,9 @@ export default function CatalogPage() {
     const [totalPages, setTotalPages] = useState(1);
     const [search, setSearch] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
-    const [sortBy, setSortBy] = useState("title");
+    const [sortBy, setSortBy] = useState("relevance");
+    const [selectedPlatform, setSelectedPlatform] = useState("All");
+    const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
 
     // Debounce search
     useEffect(() => {
@@ -23,7 +26,7 @@ export default function CatalogPage() {
         async function load() {
             setLoading(true);
             try {
-                const res = await fetch(`/api/catalog/search?page=${page}&q=${encodeURIComponent(debouncedSearch)}&sort=${sortBy}`);
+                const res = await fetch(`/api/catalog/search?page=${page}&q=${encodeURIComponent(debouncedSearch)}&sort=${sortBy}&platform=${encodeURIComponent(selectedPlatform)}`);
                 if (res.ok) {
                     const data = await res.json();
                     setGames(data.results);
@@ -36,7 +39,7 @@ export default function CatalogPage() {
             }
         }
         load();
-    }, [page, debouncedSearch, sortBy]);
+    }, [page, debouncedSearch, sortBy, selectedPlatform]);
 
     return (
         <div className="container" style={{ padding: '2rem 1rem' }}>
@@ -69,8 +72,47 @@ export default function CatalogPage() {
                 />
             </div>
 
-            {/* Sort Controls */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
+            {/* Filters Row */}
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                {/* Platform Filter */}
+                <select
+                    value={selectedPlatform}
+                    onChange={(e) => { setSelectedPlatform(e.target.value); setPage(1); }}
+                    style={{
+                        padding: '0.5rem 1rem',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--bg-subtle)',
+                        color: 'var(--text-main)',
+                        border: '1px solid var(--border)',
+                        cursor: 'pointer',
+                        maxWidth: '200px'
+                    }}
+                >
+                    <option value="All">Todas las Plataformas</option>
+                    <option value="PC">PC</option>
+                    <option value="PlayStation 5">PlayStation 5</option>
+                    <option value="PlayStation 4">PlayStation 4</option>
+                    <option value="Switch">Nintendo Switch</option>
+                    <option value="Xbox Series X">Xbox Series X</option>
+                    <option value="Xbox One">Xbox One</option>
+                    <option value="Wii U">Wii U</option>
+                    <option value="3DS">3DS</option>
+                    <option value="PlayStation 3">PlayStation 3</option>
+                    <option value="Xbox 360">Xbox 360</option>
+                    <option value="Wii">Wii</option>
+                    <option value="DS">DS</option>
+                    <option value="PlayStation 2">PlayStation 2</option>
+                    <option value="GameCube">GameCube</option>
+                    <option value="Xbox">Xbox</option>
+                    <option value="Game Boy Advance">Game Boy Advance</option>
+                    <option value="PlayStation">PlayStation</option>
+                    <option value="Nintendo 64">Nintendo 64</option>
+                    <option value="SNES">SNES</option>
+                    <option value="NES">NES</option>
+                    <option value="Genesis">Genesis / Mega Drive</option>
+                </select>
+
+                {/* Sort Control */}
                 <select
                     value={sortBy}
                     onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
@@ -83,9 +125,10 @@ export default function CatalogPage() {
                         cursor: 'pointer'
                     }}
                 >
+                    <option value="relevance">Relevancia (Top)</option>
                     <option value="title">Alfabético (A-Z)</option>
-                    <option value="releaseYear">Fecha (Reciente)</option>
-                    <option value="metacritic">Metacritic (Mayor)</option>
+                    <option value="releaseDate">Fecha (Reciente)</option>
+                    <option value="rating">Nota (Metacritic)</option>
                 </select>
             </div>
 
@@ -96,20 +139,25 @@ export default function CatalogPage() {
                 <>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1.5rem' }}>
                         {games.map(game => (
-                            <Link href={`/catalog/${game.id}`} key={game.id} className="card game-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+                            <div
+                                key={game.id}
+                                className="card game-card"
+                                style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}
+                                onClick={() => setSelectedGameId(game.id)}
+                            >
                                 <div style={{
                                     aspectRatio: '3/4',
                                     background: game.coverUrl ? `url(${game.coverUrl}) center/cover` : 'var(--bg-subtle)',
                                     borderRadius: 'var(--radius-md) var(--radius-md) 0 0',
                                     position: 'relative'
                                 }}>
-                                    {game.metacritic && (
+                                    {game.metacriticScore && (
                                         <div style={{
                                             position: 'absolute', top: 5, right: 5,
-                                            background: game.metacritic >= 75 ? '#66cc33' : '#ffcc33',
+                                            background: game.metacriticScore >= 75 ? '#66cc33' : game.metacriticScore >= 50 ? '#ffcc33' : '#ff3333',
                                             color: 'black', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', fontSize: '0.8rem'
                                         }}>
-                                            {game.metacritic}
+                                            {game.metacriticScore}
                                         </div>
                                     )}
                                 </div>
@@ -121,31 +169,78 @@ export default function CatalogPage() {
                                         {game.releaseYear || 'N/A'}
                                     </div>
                                 </div>
-                            </Link>
+                            </div>
                         ))}
                     </div>
 
                     {/* Pagination */}
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '3rem' }}>
-                        <button
-                            className="btn-secondary"
-                            disabled={page <= 1}
-                            onClick={() => setPage(page - 1)}
-                        >
-                            Anterior
-                        </button>
-                        <span style={{ display: 'flex', alignItems: 'center' }}>
-                            Página {page} de {totalPages}
-                        </span>
-                        <button
-                            className="btn-secondary"
-                            disabled={page >= totalPages}
-                            onClick={() => setPage(page + 1)}
-                        >
-                            Siguiente
-                        </button>
-                    </div>
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: '3rem', flexWrap: 'wrap' }}>
+                            <button
+                                className="btn-secondary"
+                                disabled={page <= 1}
+                                onClick={() => {
+                                    setPage(Math.max(1, page - 1));
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                            >
+                                ← Prev
+                            </button>
+
+                            {/* Page Numbers */}
+                            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                // Logic to show sliding window of pages around current page
+                                let p = page;
+                                if (page < 3) p = 1 + i;
+                                else if (page > totalPages - 2) p = totalPages - 4 + i;
+                                else p = page - 2 + i;
+
+                                if (p < 1) p = 1 + i; // fallback for fewer than 5 pages
+                                if (p > totalPages) return null;
+
+                                return (
+                                    <button
+                                        key={p}
+                                        onClick={() => {
+                                            setPage(p);
+                                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                                        }}
+                                        style={{
+                                            width: '40px', height: '40px',
+                                            borderRadius: 'var(--radius-sm)',
+                                            background: p === page ? 'var(--primary)' : 'var(--bg-subtle)',
+                                            color: p === page ? 'white' : 'var(--text-main)',
+                                            border: p === page ? 'none' : '1px solid var(--border)',
+                                            fontWeight: 600,
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        {p}
+                                    </button>
+                                );
+                            })}
+
+                            <button
+                                className="btn-secondary"
+                                disabled={page >= totalPages}
+                                onClick={() => {
+                                    setPage(Math.min(totalPages, page + 1));
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                            >
+                                Next →
+                            </button>
+                        </div>
+                    )}
                 </>
+            )}
+            {/* Detail Modal */}
+            {selectedGameId && (
+                <CatalogGameDetail
+                    id={selectedGameId}
+                    onClose={() => setSelectedGameId(null)}
+                />
             )}
         </div>
     );

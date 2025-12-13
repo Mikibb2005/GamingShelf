@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -10,7 +10,7 @@ interface Category {
     name: string;
 }
 
-export default function NewTopicPage() {
+function NewTopicForm() {
     const { data: session, status } = useSession();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -154,5 +154,13 @@ export default function NewTopicPage() {
                 </button>
             </form>
         </div>
+    );
+}
+
+export default function NewTopicPage() {
+    return (
+        <Suspense fallback={<div className="container" style={{ padding: '4rem', textAlign: 'center' }}>Cargando...</div>}>
+            <NewTopicForm />
+        </Suspense>
     );
 }

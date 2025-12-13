@@ -28,6 +28,8 @@ model User {
   
   forumTopics  ForumTopic[]  @relation("ForumTopics")
   forumReplies ForumReply[]  @relation("ForumReplies")
+  
+  ignoredGames IgnoredGame[]
 }
 
 // Master catalog of ALL games (not user-specific)
@@ -99,6 +101,8 @@ model Game {
   updatedAt   DateTime @updatedAt
 
   comments    Comment[]
+
+  @@unique([userId, source, sourceId])
 }
 
 model LinkedAccount {
@@ -167,4 +171,24 @@ model ForumReply {
   authorId  String
   author    User     @relation("ForumReplies", fields: [authorId], references: [id])
   createdAt DateTime @default(now())
+}
+
+model SystemSettings {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model IgnoredGame {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  
+  source    String
+  sourceId  String
+  title     String?
+  
+  createdAt DateTime @default(now())
+
+  @@unique([userId, source, sourceId])
 }

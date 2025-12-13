@@ -44,7 +44,8 @@ export async function GET() {
                 ...game,
                 // Fused catalog data
                 coverUrl: catalogData?.coverUrl || game.coverUrl,
-                criticScore: catalogData?.opencriticScore || catalogData?.metacritic || null,
+                // Only use scraped Metacritic score (no IGDB fallback)
+                metacriticScore: catalogData?.opencriticScore && catalogData.opencriticScore > 0 ? catalogData.opencriticScore : null,
                 developer: catalogData?.developer || null,
                 publisher: catalogData?.publisher || null,
                 catalogGenres: catalogData?.genres || null,

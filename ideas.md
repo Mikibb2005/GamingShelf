@@ -17,3 +17,8 @@ gametracker:
 - [x] Quiero que los juegos que se guardan en el perfil en Biblioteca se "fusionen" con los juegos de la base de datos, es decir que si en biblioteca tengo importado el R.E.P.O por la vinculacion de Steam, la info de este se muestre como el de la base de datos.
 - [x] Quiero que haya lista de WishList, donde se pueda guardar los juegos que se quieran tener en coleccion, y otra que sea de los que tienes comprados, sin tener en cuenta si los has jugado o no, eso si, quieor que los juegos que se guarden en Lo Tengo, tengan que estar en Sin Jugar, Jugando, Jugando(pausado), Terminado, Abandonado, platinando(hacer el 100%).
 - [x] Quiero que la nota del juego que aparece sea la de metacritic
+- [x] Quiero que haga un request de los juegos nuevos de IGDB automaticamente cada 48h. (Pero solo de los nuevos, no de todos los juegos)
+- [x] Quiero que en el catalogo de juegos se pueda filtrar por plataforma.
+- [x] Quiero que cuando se ordene en catalogo por fecha de lanzamiento, salgan los mas recientes arriba, contando dia a dia, es decir no solo 2025, sino que por cada dia esten ordenados.
+- [x] Quiero que implementes el pasar de pagina en el /catalog
+ 

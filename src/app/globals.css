@@ -118,6 +118,26 @@ button {
   transform: translateY(-1px);
 }
 
+.btn-secondary {
+  background: var(--bg-card);
+  color: var(--text-main);
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  border: 1px solid var(--border);
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--bg-card-hover);
+  border-color: var(--border-highlight);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Layout Shell Utilities */
 .app-shell {
   display: flex;

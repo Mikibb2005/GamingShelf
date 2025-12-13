@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { decrypt } from "@/lib/encryption";
 
 const RA_API_BASE = "https://retroachievements.org/API";
 
@@ -74,8 +75,15 @@ export async function POST() {
     }
 
     try {
+        // Decrypt the API key
+        const apiKey = decrypt(raAccount.apiKey);
+
+        if (!apiKey) {
+            return NextResponse.json({ error: "Error al descifrar credenciales de RetroAchievements" }, { status: 500 });
+        }
+
         // Fetch user's games from RA API
-        const url = `${RA_API_BASE}/API_GetUserCompletionProgress.php?z=${raAccount.accountId}&y=${raAccount.apiKey}&u=${raAccount.accountId}`;
+        const url = `${RA_API_BASE}/API_GetUserCompletionProgress.php?z=${raAccount.accountId}&y=${apiKey}&u=${raAccount.accountId}`;
 
         const response = await fetch(url);
 
@@ -89,66 +97,53 @@ export async function POST() {
             return NextResponse.json({ error: "Respuesta inválida de RetroAchievements" }, { status: 502 });
         }
 
-        let imported = 0;
+        const existing = await prisma.game.findMany({
+            where: { userId: session.user.id, source: "RetroAchievements" },
+            select: { sourceId: true, id: true }
+        });
+        const existingMap = new Map(existing.map((g: any) => [g.sourceId, g.id]));
+
+        const ignored = await prisma.ignoredGame.findMany({
+            where: { userId: session.user.id, source: "RetroAchievements" },
+            select: { sourceId: true }
+        });
+        const ignoredSet = new Set(ignored.map((g: any) => g.sourceId));
+
+        const candidates: any[] = [];
 
         for (const game of data.Results) {
+            const sid = String(game.GameID);
             const consoleInfo = CONSOLE_MAP[game.ConsoleID] || { name: `Console ${game.ConsoleID}`, releaseYear: 1990 };
+            let state = 'new';
 
-            // Check if game already exists
-            const existing = await prisma.game.findFirst({
-                where: {
-                    userId: session.user.id,
-                    sourceId: String(game.GameID),
-                    source: "RetroAchievements"
-                }
-            });
-
-            if (!existing) {
-                await prisma.game.create({
-                    data: {
-                        userId: session.user.id,
-                        sourceId: String(game.GameID),
-                        source: "RetroAchievements",
-                        platform: consoleInfo.name,
-                        title: game.Title,
-                        coverUrl: `https://retroachievements.org${game.ImageIcon}`,
-                        status: game.NumAwardedHardcore === game.MaxPossible ? "Completed" : "Playing",
-                        progress: game.MaxPossible > 0
-                            ? Math.round((game.NumAwardedHardcore / game.MaxPossible) * 100)
-                            : 0,
-                        achievements: JSON.stringify({
-                            unlocked: game.NumAwardedHardcore || 0,
-                            total: game.MaxPossible || 0
-                        }),
-                        releaseYear: consoleInfo.releaseYear
-                    }
-                });
-                imported++;
-            } else {
-                // Update existing game
-                await prisma.game.update({
-                    where: { id: existing.id },
-                    data: {
-                        status: game.NumAwardedHardcore === game.MaxPossible ? "Completed" : "Playing",
-                        progress: game.MaxPossible > 0
-                            ? Math.round((game.NumAwardedHardcore / game.MaxPossible) * 100)
-                            : 0,
-                        achievements: JSON.stringify({
-                            unlocked: game.NumAwardedHardcore || 0,
-                            total: game.MaxPossible || 0
-                        })
-                    }
-                });
+            if (existingMap.has(sid)) {
+                state = 'library';
+            } else if (ignoredSet.has(sid)) {
+                state = 'ignored';
             }
+
+            candidates.push({
+                source: "RetroAchievements",
+                sourceId: sid,
+                title: game.Title,
+                platform: consoleInfo.name, // Using platform name from map
+                coverUrl: `https://retroachievements.org${game.ImageIcon}`,
+                state // 'library', 'ignored', 'new'
+            });
         }
 
         return NextResponse.json({
             success: true,
-            imported,
-            total: data.Results.length
+            updated: 0,
+            candidates,
+            total: data.Results.length,
+            message: `Escaneo completado. ${candidates.length} juegos encontrados.`
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("RA Sync error:", error);
-        return NextResponse.json({ error: "Error al sincronizar" }, { status: 500 });
+        return NextResponse.json({
+            error: "Error al sincronizar",
+            details: error.message
+        }, { status: 500 });
     }
 }

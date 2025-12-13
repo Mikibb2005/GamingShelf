@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { encrypt } from "@/lib/encryption";
 
 const OPENXBL_BASE = "https://xbl.io/api/v2";
 
@@ -38,7 +39,10 @@ export async function POST(request: Request) {
 
         const xuid = user.xuid;
 
-        // Save linked account
+        // Encrypt the API key before storing
+        const encryptedApiKey = encrypt(apiKey);
+
+        // Save linked account with encrypted API key
         await prisma.linkedAccount.upsert({
             where: {
                 userId_provider: {
@@ -47,16 +51,16 @@ export async function POST(request: Request) {
                 }
             },
             update: {
-                accountId: `${xuid}|${apiKey}`,
+                accountId: xuid, // Store XUID cleanly
                 username: user.gamertag,
-                apiKey: "" // We store it combined in accountId for consistency
+                apiKey: encryptedApiKey // Encrypted API key
             },
             create: {
                 userId: session.user.id,
                 provider: "Xbox",
-                accountId: `${xuid}|${apiKey}`,
+                accountId: xuid,
                 username: user.gamertag,
-                apiKey: ""
+                apiKey: encryptedApiKey
             }
         });
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { validatePassword, getPasswordRequirements } from "@/lib/password-validation";
 
 export async function POST(request: Request) {
     try {
@@ -9,6 +10,18 @@ export async function POST(request: Request) {
         if (!username || !email || !password) {
             return NextResponse.json(
                 { error: "Todos los campos son requeridos" },
+                { status: 400 }
+            );
+        }
+
+        // Validate password strength
+        const passwordValidation = validatePassword(password);
+        if (!passwordValidation.isValid) {
+            return NextResponse.json(
+                {
+                    error: passwordValidation.errors[0],
+                    requirements: getPasswordRequirements()
+                },
                 { status: 400 }
             );
         }

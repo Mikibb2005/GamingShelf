@@ -13,7 +13,7 @@ interface GameDetails {
     developer: string | null;
     publisher: string | null;
     releaseYear: number | null;
-    metacritic: number | null;
+    metacriticScore: number | null; // Mapped from opencriticScore
     genres: string | null;
     platforms: string[];
     screenshots: string[];
@@ -39,7 +39,12 @@ export default function CatalogDetailPage({ params }: { params: Promise<{ id: st
             try {
                 const res = await fetch(`/api/catalog/${id}`);
                 if (res.ok) {
-                    setGame(await res.json());
+                    const data = await res.json();
+                    setGame({
+                        ...data,
+                        // Use scraped Metacritic score (opencriticScore)
+                        metacriticScore: data.opencriticScore && data.opencriticScore > 0 ? data.opencriticScore : null
+                    });
                 }
             } catch (e) {
                 console.error(e);
@@ -89,19 +94,31 @@ export default function CatalogDetailPage({ params }: { params: Promise<{ id: st
 
     const bgStyle = {
         position: 'relative' as const,
-        height: '400px',
+        height: '250px',
         overflow: 'hidden',
         background: `linear-gradient(to bottom, rgba(0,0,0,0.3), var(--bg-main)), url(${game.screenshots[0] || game.coverUrl}) center/cover no-repeat`,
         borderRadius: 'var(--radius-lg)',
-        marginBottom: '-60px' // Overlap
+        marginBottom: '-100px' // Overlap
     };
 
     return (
-        <div className="container" style={{ padding: '2rem 1rem' }}>
-            <Link href="/catalog" style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '1rem' }}>← Volver al catálogo</Link>
-
+        <div className="container" style={{ padding: '0 1rem 2rem' }}>
             {/* Hero */}
-            <div style={bgStyle}></div>
+            <div style={bgStyle}>
+                <button
+                    onClick={() => router.back()}
+                    style={{
+                        position: 'absolute', top: '20px', left: '20px', zIndex: 10,
+                        background: 'rgba(0,0,0,0.5)', border: 'none', color: 'white',
+                        cursor: 'pointer', fontSize: '0.9rem',
+                        display: 'flex', alignItems: 'center', gap: '0.5rem',
+                        padding: '8px 16px', borderRadius: '20px',
+                        backdropFilter: 'blur(4px)'
+                    }}
+                >
+                    ← Volver
+                </button>
+            </div>
 
             <div style={{ padding: '0 2rem', position: 'relative', display: 'flex', gap: '2rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
 
@@ -122,20 +139,21 @@ export default function CatalogDetailPage({ params }: { params: Promise<{ id: st
                 </div>
 
                 {/* Info */}
-                <div style={{ flex: 1, paddingTop: '2rem' }}>
+                <div style={{ flex: 1 }}>
                     <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.5rem' }}>{game.title}</h1>
                     <div style={{ display: 'flex', gap: '1rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', alignItems: 'center' }}>
                         <span>{game.releaseYear}</span>
                         <span>•</span>
                         <span>{game.developer}</span>
-                        {game.metacritic && (
-                            <span style={{
-                                background: game.metacritic >= 75 ? '#66cc33' : '#ffcc33',
-                                color: 'black', fontWeight: 700, padding: '2px 6px', borderRadius: '4px'
-                            }}>
-                                {game.metacritic}
-                            </span>
-                        )}
+                        <span style={{
+                            background: game.metacriticScore
+                                ? (game.metacriticScore >= 75 ? '#66cc33' : game.metacriticScore >= 50 ? '#ffcc33' : '#ff3333')
+                                : '#666',
+                            color: game.metacriticScore ? 'black' : '#aaa',
+                            fontWeight: 700, padding: '2px 8px', borderRadius: '4px'
+                        }}>
+                            {game.metacriticScore || '-'}
+                        </span>
                     </div>
 
                     <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>

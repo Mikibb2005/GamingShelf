@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { decrypt } from "@/lib/encryption";
 
 // Xbox Live API uses OpenXBL (free tier available): https://xbl.io/
 
@@ -25,10 +26,20 @@ export async function POST() {
         }, { status: 400 });
     }
 
-    const xuid = linkedAccount.accountId;
-    // API key stored in accountId field as "xuid|apikey"
-    const parts = linkedAccount.accountId.split("|");
-    const apiKey = parts.length > 1 ? parts[1] : "";
+    // For backwards compatibility, check both new format (apiKey field) and old format (xuid|apikey in accountId)
+    let xuid: string;
+    let apiKey: string;
+
+    if (linkedAccount.apiKey) {
+        // New format: apiKey is encrypted in its own field
+        xuid = linkedAccount.accountId;
+        apiKey = decrypt(linkedAccount.apiKey);
+    } else {
+        // Legacy format: xuid|apikey combined in accountId
+        const parts = linkedAccount.accountId.split("|");
+        xuid = parts[0];
+        apiKey = parts.length > 1 ? parts[1] : "";
+    }
 
     if (!apiKey) {
         return NextResponse.json({ error: "API Key no configurada" }, { status: 400 });
@@ -36,7 +47,7 @@ export async function POST() {
 
     try {
         // Fetch owned games/titles
-        const gamesRes = await fetch(`${OPENXBL_BASE}/achievements/player/${parts[0]}`, {
+        const gamesRes = await fetch(`${OPENXBL_BASE}/achievements/player/${xuid}`, {
             headers: {
                 "X-Authorization": apiKey,
                 "Accept": "application/json"
@@ -52,67 +63,56 @@ export async function POST() {
         const data = await gamesRes.json();
         const titles = data.titles || [];
 
-        let synced = 0;
+        // Pre-fetch DB state
+        const existing = await prisma.game.findMany({
+            where: { userId: session.user.id, source: "Xbox" },
+            select: { sourceId: true, id: true }
+        });
+        const existingMap = new Map(existing.map((g: any) => [g.sourceId, g.id]));
+
+        const ignored = await prisma.ignoredGame.findMany({
+            where: { userId: session.user.id, source: "Xbox" },
+            select: { sourceId: true }
+        });
+        const ignoredSet = new Set(ignored.map((g: any) => g.sourceId));
+
+        const candidates: any[] = [];
 
         for (const title of titles) {
             const sourceId = `xbox-${title.titleId}`;
             const platform = "Xbox";
+            let state = 'new';
 
-            const unlocked = title.currentAchievements || 0;
-            const total = title.totalAchievements || 0;
-            const progress = total > 0 ? Math.round((unlocked / total) * 100) : 0;
-
-            let status = "Backlog";
-            if (progress >= 100) status = "Completed";
-            else if (progress > 0) status = "Playing";
-
-            const achievementsJson = JSON.stringify({ unlocked, total });
-
-            // Find existing game
-            const existing = await prisma.game.findFirst({
-                where: { userId: session.user.id, sourceId, platform }
-            });
-
-            if (existing) {
-                await prisma.game.update({
-                    where: { id: existing.id },
-                    data: {
-                        title: title.name,
-                        coverUrl: title.displayImage,
-                        progress,
-                        status,
-                        achievements: achievementsJson,
-                        playtimeMinutes: title.totalMinutesPlayed || 0
-                    }
-                });
-            } else {
-                await prisma.game.create({
-                    data: {
-                        userId: session.user.id,
-                        sourceId,
-                        source: "Xbox",
-                        platform,
-                        title: title.name,
-                        coverUrl: title.displayImage,
-                        progress,
-                        status,
-                        achievements: achievementsJson,
-                        playtimeMinutes: title.totalMinutesPlayed || 0
-                    }
-                });
+            if (existingMap.has(sourceId)) {
+                state = 'library';
+            } else if (ignoredSet.has(sourceId)) {
+                state = 'ignored';
             }
 
-            synced++;
+            candidates.push({
+                source: "Xbox",
+                sourceId,
+                title: title.name,
+                platform,
+                coverUrl: title.displayImage,
+                state,
+                ownership: 'owned'
+            });
         }
 
         return NextResponse.json({
             success: true,
-            synced,
-            message: `Sincronizados ${synced} juegos de Xbox`
+            updated: 0,
+            candidates,
+            total: titles.length,
+            message: `Escaneo completado. ${candidates.length} juegos encontrados.`
         });
 
-    } catch (e) {
+    } catch (e: any) {
         console.error("Xbox sync error:", e);
-        return NextResponse.json({ error: "Error de sincronización" }, { status: 500 });
+        return NextResponse.json({
+            error: "Error al sincronizar",
+            details: e.message
+        }, { status: 500 });
     }
 }
