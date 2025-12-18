@@ -3,13 +3,14 @@ import { auth } from "@/lib/auth";
 import Link from "next/link";
 import Image from "next/image";
 import { Metadata } from "next";
-// We will use the standalone CatalogGameDetail as a modal trigger if we want, 
-// or just implement a small client component for the 'Add to Collection' logic.
+import { getCatalogGame } from "@/lib/data-service";
 import AddToCollectionButton from "./AddToCollectionButton";
+
+export const revalidate = 86400; // Cache this page for 24 hours
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
     const { id } = await params;
-    const game = await prisma.gameCatalog.findUnique({ where: { id } });
+    const game = await getCatalogGame(id);
     return {
         title: `${game?.title || 'Juego'} | GamingShelf`,
     };
@@ -19,9 +20,8 @@ export default async function CatalogDetailPage({ params }: { params: Promise<{ 
     const { id } = await params;
     const session = await auth();
 
-    const gameData = await prisma.gameCatalog.findUnique({
-        where: { id }
-    });
+    const gameData = await getCatalogGame(id);
+
 
     if (!gameData) return <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>Juego no encontrado</div>;
 

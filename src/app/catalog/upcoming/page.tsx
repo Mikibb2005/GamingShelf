@@ -1,7 +1,9 @@
-import { prisma } from "@/lib/prisma";
+import { getUpcomingCatalog } from "@/lib/data-service";
 import Link from "next/link";
 import CatalogGameDetail from "@/components/CatalogGameDetail";
 import { Metadata } from "next";
+
+export const revalidate = 3600; // Cache this page for 1 hour
 
 export const metadata: Metadata = {
     title: "Próximos Lanzamientos | GamingShelf",
@@ -11,20 +13,9 @@ export default async function UpcomingPage({ searchParams }: { searchParams: Pro
     const params = await searchParams;
     const selectedGameId = params.gameId || null;
 
-    // Fetch upcoming games
-    const upcomingGames = await prisma.gameCatalog.findMany({
-        where: {
-            OR: [
-                { releaseDate: { gte: new Date() } },
-                { releaseDate: null, igdbId: { not: null } }
-            ]
-        },
-        orderBy: [
-            { releaseDate: { sort: 'asc', nulls: 'last' } },
-            { releaseYear: { sort: 'asc', nulls: 'last' } }
-        ],
-        take: 100
-    });
+    // Fetch upcoming games using cache
+    const upcomingGames = await getUpcomingCatalog();
+
 
     // Helper to group by month
     const grouped = upcomingGames.reduce((acc: any, game: any) => {

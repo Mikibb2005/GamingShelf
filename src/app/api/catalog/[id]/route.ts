@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { getCatalogGame } from "@/lib/data-service";
 
 // GET: Fetch single catalog item by ID
 export async function GET(
@@ -9,12 +9,9 @@ export async function GET(
     const { id } = await context.params;
 
     try {
-        const game = await prisma.gameCatalog.findUnique({
-            where: { id }
-        });
+        const game = await getCatalogGame(id);
 
         if (!game) {
-            // Try by slug if not UUID? (Optional, but useful for clean URLs if we used slugs)
             return NextResponse.json({ error: "Game not found" }, { status: 404 });
         }
 

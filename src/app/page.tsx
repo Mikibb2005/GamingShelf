@@ -4,6 +4,9 @@ import Link from "next/link";
 import Image from "next/image";
 import GameCard from "@/components/GameCard";
 import { Metadata } from "next";
+import { getFeaturedGames, getRecentReviews, getUpcomingCatalog } from "@/lib/data-service";
+
+export const revalidate = 600; // Total page revalidation every 10 mins
 
 export const metadata: Metadata = {
   title: "Inicio | GamingShelf",
@@ -12,43 +15,14 @@ export const metadata: Metadata = {
 export default async function Home() {
   const session = await auth();
 
-  // 1. Featured (Recent Hits)
-  const sixMonthsAgo = new Date();
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  // 1. Featured (Using cache)
+  const featured = await getFeaturedGames();
 
-  const featured = await prisma.gameCatalog.findMany({
-    where: {
-      releaseDate: {
-        gte: sixMonthsAgo,
-        lte: new Date()
-      }
-    },
-    orderBy: [
-      { opencriticScore: { sort: 'desc', nulls: 'last' } },
-      { metacritic: { sort: 'desc', nulls: 'last' } },
-      { releaseDate: 'desc' }
-    ],
-    take: 12
-  });
+  // 2. Upcoming (Using cache, take only first 15 for home)
+  const allUpcoming = await getUpcomingCatalog();
+  const upcoming = allUpcoming.slice(0, 15);
 
-  // 2. Upcoming
-  const upcoming = await prisma.gameCatalog.findMany({
-    where: {
-      OR: [
-        { releaseDate: { gt: new Date() } },
-        { releaseDate: null, releaseYear: { gte: new Date().getFullYear() } },
-        { releaseDate: null, releaseYear: null }
-      ],
-      igdbId: { not: null }
-    },
-    orderBy: [
-      { releaseDate: { sort: 'asc', nulls: 'last' } },
-      { releaseYear: { sort: 'asc', nulls: 'last' } }
-    ],
-    take: 15
-  });
-
-  // 3. Playing (User)
+  // 3. Playing (User-specific, keep dynamic)
   let playing: any[] = [];
   if (session?.user?.id) {
     playing = await prisma.game.findMany({
@@ -61,15 +35,9 @@ export default async function Home() {
     });
   }
 
-  // 4. Recent Reviews
-  const reviews = await prisma.comment.findMany({
-    orderBy: { createdAt: 'desc' },
-    take: 10,
-    include: {
-      user: { select: { username: true, id: true, isProfilePublic: true } },
-      game: { select: { title: true, coverUrl: true, id: true } }
-    }
-  });
+  // 4. Recent Reviews (Using cache)
+  const reviews = await getRecentReviews();
+
 
   const userName = session?.user?.name || "Jugador";
 
