@@ -7,10 +7,12 @@ import FilterBar from "@/components/library/FilterBar";
 import ViewToggle from "@/components/library/ViewToggle";
 import { getAllPlatformsSorted } from "@/lib/platforms";
 import ProgressBar from "@/components/ProgressBar";
+import Link from 'next/link';
 
 export default function LibraryPage() {
     const [games, setGames] = useState<UnifiedGame[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedPlatform, setSelectedPlatform] = useState<string>("All");
@@ -22,6 +24,10 @@ export default function LibraryPage() {
         async function loadGames() {
             try {
                 const response = await fetch('/api/games');
+                if (response.status === 401) {
+                    setError("Unauthorized");
+                    return;
+                }
                 if (!response.ok) throw new Error('Failed to fetch');
 
                 const dbGames = await response.json();
@@ -47,6 +53,7 @@ export default function LibraryPage() {
                 setGames(unifiedGames);
             } catch (error) {
                 console.error("Error loading games:", error);
+                setError("Ocurrió un error al cargar tu biblioteca");
             } finally {
                 setLoading(false);
             }
@@ -67,6 +74,24 @@ export default function LibraryPage() {
     const availablePlatforms = getAllPlatformsSorted();
 
     if (loading) return <ProgressBar />;
+
+    if (error === "Unauthorized") {
+        return (
+            <div className="container" style={{ padding: '8rem 2rem', textAlign: 'center' }}>
+                <div className="glass-panel" style={{ padding: '4rem', maxWidth: '600px', margin: '0 auto', borderRadius: 'var(--radius-xl)' }}>
+                    <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>🔐</div>
+                    <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '1rem' }}>Biblioteca Privada</h2>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: '2.5rem', fontSize: '1.1rem', lineHeight: 1.6 }}>
+                        Inicia sesión para ver tu colección personal de juegos, seguir tu progreso y gestionar tus logros.
+                    </p>
+                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                        <Link href="/login" className="btn-primary" style={{ padding: '1rem 2rem' }}>Iniciar Sesión</Link>
+                        <Link href="/register" className="btn-secondary" style={{ padding: '1rem 2rem' }}>Crear Cuenta</Link>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="container" style={{ padding: '2rem 1rem' }}>

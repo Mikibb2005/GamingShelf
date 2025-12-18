@@ -107,6 +107,12 @@ export default function CatalogGameDetail({ id, onClose, onCloseRedirect }: Prop
                 })
             });
 
+            if (res.status === 401) {
+                // User is not logged in, redirect to login
+                router.push("/login?callback=" + encodeURIComponent(window.location.pathname + window.location.search));
+                return;
+            }
+
             if (res.ok) {
                 const newGame = await res.json();
                 handleClose();

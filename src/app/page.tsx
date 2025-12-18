@@ -5,6 +5,7 @@ import Image from "next/image";
 import GameCard from "@/components/GameCard";
 import { Metadata } from "next";
 import { getFeaturedGames, getRecentReviews, getUpcomingCatalog } from "@/lib/data-service";
+import CatalogGameDetail from "@/components/CatalogGameDetail";
 
 export const revalidate = 600; // Total page revalidation every 10 mins
 
@@ -12,7 +13,8 @@ export const metadata: Metadata = {
   title: "Inicio | GamingShelf",
 };
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ gameId?: string }> }) {
+  const { gameId } = await searchParams;
   const session = await auth();
 
   // 1. Featured (Using cache)
@@ -69,7 +71,7 @@ export default async function Home() {
           scrollbarWidth: 'none', msOverflowStyle: 'none'
         }}>
           {featured.map((game: any, index: number) => (
-            <Link href={`/catalog/${game.id}`} key={game.id} style={{
+            <Link href={`/?gameId=${game.id}`} key={game.id} style={{
               minWidth: '220px', width: '220px', textDecoration: 'none', color: 'inherit',
               flexShrink: 0
             }}>
@@ -128,7 +130,7 @@ export default async function Home() {
           scrollbarWidth: 'none', msOverflowStyle: 'none'
         }}>
           {upcoming.map((game: any) => (
-            <Link href={`/catalog/${game.id}`} key={game.id} style={{
+            <Link href={`/?gameId=${game.id}`} key={game.id} style={{
               minWidth: '220px', width: '220px', textDecoration: 'none', color: 'inherit',
               flexShrink: 0
             }}>
@@ -261,7 +263,10 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* Detail Modal */}
+      {gameId && (
+        <CatalogGameDetail id={gameId} onCloseRedirect="/" />
+      )}
     </div>
   );
 }
-
