@@ -28,9 +28,14 @@ export async function syncNewGamesFromIGDB(force = false) {
         console.log("[IGDB Sync] Starting sync for new games...");
 
         // 2. Determine query start date
-        // If never synced, default to 30 days ago to avoid fetching entire history
-        const defaultStart = Math.floor((now - (30 * 24 * 60 * 60 * 1000)) / 1000);
-        const startTime = lastSyncSetting ? Math.floor(lastSyncTime / 1000) : defaultStart;
+        const catalogCount = await prisma.gameCatalog.count();
+        const isCatalogEmpty = catalogCount === 0;
+
+        // If never synced or catalog is empty, default to 1 year ago for first-time population
+        const defaultStart = Math.floor((now - (365 * 24 * 60 * 60 * 1000)) / 1000);
+        const startTime = (lastSyncSetting && !isCatalogEmpty) ? Math.floor(lastSyncTime / 1000) : defaultStart;
+
+        console.log(`[IGDB Sync] Catalog count: ${catalogCount}. Querying games released after: ${new Date(startTime * 1000).toLocaleDateString()}`);
 
         // 3. Fetch from IGDB
         // categories: 0=Main, 8=Remake, 9=Remaster
@@ -38,7 +43,7 @@ export async function syncNewGamesFromIGDB(force = false) {
             fields name, slug, cover.url, first_release_date, summary, total_rating,
                    genres.name, platforms.name, involved_companies.company.name, involved_companies.developer, involved_companies.publisher;
             where first_release_date > ${startTime} & category = (0, 8, 9) & cover != null;
-            sort first_release_date asc;
+            sort first_release_date desc;
             limit ${MAX_GAMES_PER_SYNC};
         `;
 
