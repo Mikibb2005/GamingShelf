@@ -41,6 +41,9 @@
     "migrate-to-supabase.ts",
     "clear-users.ts",
     "check-catalog.ts",
+    "check-upcoming.ts",
+    "check-igdb-gta.ts",
+    "trigger-sync.ts",
     "test-db.ts",
     "migration_data"
   ]
