@@ -1,0 +1,5 @@
+[{"id":"b522d1ea-8049-4b0f-97ef-5bbf8bcff1e2","name":"General","description":"Discusiones generales sobre videojuegos","icon":"💬","order":0},
+{"id":"5f6e3dc4-94c6-47cb-8b27-754ebe9687c4","name":"Ayuda","description":"¿Necesitas ayuda? Pregunta aquí","icon":"❓","order":1},
+{"id":"0e957aa3-8190-4670-8af4-5257117c3c54","name":"Logros","description":"Comparte tus logros y achievements","icon":"🏆","order":2},
+{"id":"5eef22a7-3da9-42ae-b1c6-f28414e351e9","name":"Retro","description":"Juegos clásicos y retro gaming","icon":"🕹️","order":3},
+{"id":"9f35fd66-5fe0-4224-9909-0133353562ef","name":"Off-Topic","description":"Todo lo demás","icon":"☕","order":4}]
