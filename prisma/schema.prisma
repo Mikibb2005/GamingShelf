@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -13,118 +13,135 @@ model User {
   email     String?  @unique
   password  String?
   createdAt DateTime @default(now())
-  
+
   // Privacy settings
   isProfilePublic   Boolean @default(true)
   isGamesListPublic Boolean @default(true)
   hiddenProviders   String? // JSON array of provider names to hide from profile
-  
-  games     Game[]
-  accounts  LinkedAccount[]
-  
-  followers Follow[] @relation("following")
-  following Follow[] @relation("follower")
+
+  // Profile - V1.1
+  realName          String?
+  bio               String?
+  avatarUrl         String?
+  socialLinks       String? // JSON: { twitter: "...", steam: "..." }
+  favoritePlatforms String? // JSON: ["PS5", "Switch"]
+
+  posts            Post[]
+  messagesSent     Message[]  @relation("sent")
+  messagesReceived Message[]  @relation("received")
+  showcases        Showcase[]
+
+  games    Game[]
+  accounts LinkedAccount[]
+
+  followers Follow[]  @relation("following")
+  following Follow[]  @relation("follower")
   comments  Comment[]
-  
-  forumTopics  ForumTopic[]  @relation("ForumTopics")
-  forumReplies ForumReply[]  @relation("ForumReplies")
-  
+
+  forumTopics  ForumTopic[] @relation("ForumTopics")
+  forumReplies ForumReply[] @relation("ForumReplies")
+
   ignoredGames IgnoredGame[]
 }
 
 // Master catalog of ALL games (not user-specific)
 model GameCatalog {
-  id            String   @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // Identification
-  slug          String   @unique  // URL-friendly unique identifier
-  title         String
+  slug            String  @unique // URL-friendly unique identifier
+  title           String
   titleNormalized String? // Lowercase, accent-stripped title for search
-  
+
   // Media
   coverUrl      String?
   backgroundUrl String?
-  screenshots   String?  // JSON array of URLs
-  
+  screenshots   String? // JSON array of URLs
+
   // Info
-  description   String?
-  releaseDate   DateTime?
-  releaseYear   Int?
-  developer     String?
-  publisher     String?
-  
+  description String?
+  releaseDate DateTime?
+  releaseYear Int?
+  developer   String?
+  publisher   String?
+
   // Classification
-  genres        String?  // Comma-separated or JSON
-  platforms     String?  // JSON array of platform names
-  
+  genres    String? // Comma-separated or JSON
+  platforms String? // JSON array of platform names
+
   // Ratings
-  metacritic    Int?      // Legacy/IGDB rating
-  opencriticId  Int?      // OpenCritic game ID
-  opencriticScore Int?    // Actual critic score from OpenCritic
-  igdbRating    Float?
-  
+  metacritic      Int? // Legacy/IGDB rating
+  opencriticId    Int? // OpenCritic game ID
+  opencriticScore Int? // Actual critic score from OpenCritic
+  igdbRating      Float?
+  timeToBeat      Int? // V1.1: Average completion time in minutes (from HLTB)
+
   // External IDs for linking
-  igdbId        Int?
-  rawgId        Int?
-  steamAppId    Int?
-  
+  igdbId     Int?
+  rawgId     Int?
+  steamAppId Int?
+
   // Metadata
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Game {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  
-  sourceId    String
-  source      String
-  platform    String
-  
-  title       String
-  coverUrl    String?
-  backgroundUrl String?
-  
-  releaseYear Int?
-  genres      String?
-  achievements String?
-  playtimeMinutes Int @default(0)
-  
-  // Ownership and Progress
-  ownership   String   @default("owned") // "wishlist" | "owned"
-  status      String   @default("unplayed") // unplayed, playing, paused, completed, dropped, platinum
-  progress    Int      @default(0)
-  rating      Int?
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  comments    Comment[]
+  sourceId String
+  source   String
+  platform String
+
+  title         String
+  coverUrl      String?
+  backgroundUrl String?
+
+  releaseYear     Int?
+  genres          String?
+  achievements    String?
+  playtimeMinutes Int     @default(0)
+
+  // V1.1 Dates
+  startedAt  DateTime?
+  finishedAt DateTime?
+
+  // Ownership and Progress
+  ownership String @default("owned") // "wishlist" | "owned"
+  status    String @default("unplayed") // unplayed, playing, paused, completed, dropped, platinum
+  progress  Int    @default(0)
+  rating    Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  comments Comment[]
 
   @@unique([userId, source, sourceId])
 }
 
 model LinkedAccount {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
   provider  String
   accountId String
-  username  String?  // Store display name (Gamertag, Steam Name, etc)
+  username  String? // Store display name (Gamertag, Steam Name, etc)
   apiKey    String?
-  
+
   createdAt DateTime @default(now())
 
   @@unique([userId, provider])
 }
 
 model Follow {
-  followerId String
+  followerId  String
   followingId String
-  follower   User   @relation("follower", fields: [followerId], references: [id])
-  following  User   @relation("following", fields: [followingId], references: [id])
+  follower    User   @relation("follower", fields: [followerId], references: [id])
+  following   User   @relation("following", fields: [followingId], references: [id])
 
   @@id([followerId, followingId])
 }
@@ -137,40 +154,42 @@ model Comment {
   userId    String
   user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
+  post      Post?    @relation(fields: [postId], references: [id])
+  postId    String?
 }
 
 model ForumCategory {
-  id          String   @id @default(uuid())
-  name        String   @unique
+  id          String       @id @default(uuid())
+  name        String       @unique
   description String?
   icon        String?
-  order       Int      @default(0)
+  order       Int          @default(0)
   topics      ForumTopic[]
 }
 
 model ForumTopic {
-  id         String   @id @default(uuid())
+  id         String        @id @default(uuid())
   title      String
   content    String
   categoryId String
   category   ForumCategory @relation(fields: [categoryId], references: [id])
   authorId   String
-  author     User     @relation("ForumTopics", fields: [authorId], references: [id])
-  isPinned   Boolean  @default(false)
-  isLocked   Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  author     User          @relation("ForumTopics", fields: [authorId], references: [id])
+  isPinned   Boolean       @default(false)
+  isLocked   Boolean       @default(false)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
   replies    ForumReply[]
 }
 
 model ForumReply {
-  id        String   @id @default(uuid())
+  id        String     @id @default(uuid())
   content   String
   topicId   String
   topic     ForumTopic @relation(fields: [topicId], references: [id])
   authorId  String
-  author    User     @relation("ForumReplies", fields: [authorId], references: [id])
-  createdAt DateTime @default(now())
+  author    User       @relation("ForumReplies", fields: [authorId], references: [id])
+  createdAt DateTime   @default(now())
 }
 
 model SystemSettings {
@@ -180,15 +199,50 @@ model SystemSettings {
 }
 
 model IgnoredGame {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  
-  source    String
-  sourceId  String
-  title     String?
-  
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  source   String
+  sourceId String
+  title    String?
+
   createdAt DateTime @default(now())
 
   @@unique([userId, source, sourceId])
+}
+
+// --- V1.1 Social Features ---
+
+model Post {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  imageUrl  String
+  caption   String?
+  createdAt DateTime @default(now())
+  likes     Int      @default(0)
+
+  comments Comment[]
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  senderId   String
+  sender     User     @relation("sent", fields: [senderId], references: [id])
+  receiverId String
+  receiver   User     @relation("received", fields: [receiverId], references: [id])
+  content    String
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+model Showcase {
+  id      String @id @default(uuid())
+  userId  String
+  user    User   @relation(fields: [userId], references: [id])
+  title   String
+  type    String // "grid", "list", "featured"
+  content String // JSON: IDs of games or items to show
+  order   Int    @default(0)
 }

@@ -5,6 +5,8 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import SyncModal from "@/components/SyncModal";
 import IgnoredGamesModal from "@/components/IgnoredGamesModal";
+import ProfileEditSection from "@/components/settings/ProfileEditSection";
+import ShowcaseManager from "@/components/settings/ShowcaseManager";
 
 export default function SettingsPage() {
     const { data: session, status } = useSession();
@@ -320,6 +322,12 @@ export default function SettingsPage() {
                 </form>
             </div>
 
+            {/* Profile Section */}
+            <ProfileEditSection setMessage={setMessage} />
+
+            {/* Showcases */}
+            <ShowcaseManager setMessage={setMessage} />
+
             {/* Privacy Section */}
             <PrivacySection linkedAccounts={linkedAccounts} setMessage={setMessage} />
 
@@ -491,3 +499,5 @@ function PrivacySection({ linkedAccounts, setMessage }: { linkedAccounts: any[],
         </div>
     );
 }
+
+

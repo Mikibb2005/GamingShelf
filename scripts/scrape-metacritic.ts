@@ -11,8 +11,10 @@
 import { prisma } from "../src/lib/prisma";
 import * as cheerio from "cheerio";
 
-const BATCH_SIZE = 50; // Process 50 games at a time
-const DELAY_MS = 1500; // 1.5 seconds between requests to be polite
+const BATCH_SIZE = 100; // Increased batch size
+const CONCURRENCY = 8; // Number of parallel requests
+const MIN_DELAY = 100;
+const MAX_DELAY = 500;
 
 // User agent to mimic a browser
 const HEADERS = {
@@ -105,8 +107,63 @@ async function fetchMetacriticScore(title: string): Promise<number | null> {
     return null;
 }
 
+/**
+ * Clean title by removing common edition suffixes
+ */
+function cleanTitle(title: string): string {
+    return title
+        .replace(/:? Game of the Year( Edition)?/i, '')
+        .replace(/:? GOTY( Edition)?/i, '')
+        .replace(/:? Complete( Edition)?/i, '')
+        .replace(/:? Ultimate( Edition)?/i, '')
+        .replace(/:? Deluxe( Edition)?/i, '')
+        .replace(/:? Remastered/i, '')
+        .replace(/:? Special Edition/i, '')
+        .replace(/:? Anniversary Edition/i, '')
+        .replace(/:? Director's Cut/i, '')
+        .trim();
+}
+
+async function processGame(game: { id: string, title: string }, index: number, total: number) {
+    // Add random delay to avoid pattern detection
+    const delayTime = Math.floor(Math.random() * (MAX_DELAY - MIN_DELAY + 1) + MIN_DELAY);
+    await new Promise(r => setTimeout(r, delayTime));
+
+    const progress = `[${index + 1}/${total}]`;
+
+    try {
+        let score = await fetchMetacriticScore(game.title);
+
+        if (!score) {
+            const cleaned = cleanTitle(game.title);
+            if (cleaned !== game.title) {
+                score = await fetchMetacriticScore(cleaned);
+            }
+        }
+
+        if (score) {
+            await prisma.gameCatalog.update({
+                where: { id: game.id },
+                data: { opencriticScore: score }
+            });
+            console.log(`${progress} ✓ ${game.title.substring(0, 30)}: ${score}`);
+            return 'updated';
+        } else {
+            await prisma.gameCatalog.update({
+                where: { id: game.id },
+                data: { opencriticScore: -1 }
+            });
+            console.log(`${progress} ✗ ${game.title.substring(0, 30)}: Not Found`);
+            return 'not_found';
+        }
+    } catch (e) {
+        console.log(`${progress} ⚠ ${game.title.substring(0, 30)}: Error`);
+        return 'error';
+    }
+}
+
 async function main() {
-    console.log("🎮 Metacritic Score Scraper - Full Run\n");
+    console.log("🎮 Metacritic Score Scraper - Turbo Mode (8x Parallel)\n");
 
     let totalUpdated = 0;
     let totalNotFound = 0;
@@ -118,11 +175,8 @@ async function main() {
         console.log(`ROUND ${round}`);
         console.log(`${"═".repeat(60)}\n`);
 
-        // Get games that don't have a scraped Metacritic score yet
         const games = await prisma.gameCatalog.findMany({
-            where: {
-                opencriticScore: null
-            },
+            where: { opencriticScore: null },
             orderBy: { metacritic: 'desc' },
             take: BATCH_SIZE,
             select: { id: true, title: true, metacritic: true }
@@ -133,62 +187,27 @@ async function main() {
             break;
         }
 
-        console.log(`Found ${games.length} games to process\n`);
-        console.log("─".repeat(60));
+        console.log(`Processing ${games.length} games with concurrency ${CONCURRENCY}...`);
 
-        let updated = 0;
-        let notFound = 0;
-        let errors = 0;
+        // Process in chunks of CONCURRENCY
+        for (let i = 0; i < games.length; i += CONCURRENCY) {
+            const chunk = games.slice(i, i + CONCURRENCY);
+            const promises = chunk.map((game, idx) => processGame(game, i + idx, games.length));
 
-        for (let i = 0; i < games.length; i++) {
-            const game = games[i];
-            const progress = `[${i + 1}/${games.length}]`;
+            const results = await Promise.all(promises);
 
-            process.stdout.write(`${progress} ${game.title.substring(0, 40).padEnd(40)} `);
-
-            try {
-                const score = await fetchMetacriticScore(game.title);
-
-                if (score) {
-                    await prisma.gameCatalog.update({
-                        where: { id: game.id },
-                        data: { opencriticScore: score }
-                    });
-                    console.log(`✓ Score: ${score}`);
-                    updated++;
-                } else {
-                    // Mark as checked (set to -1) so we don't retry
-                    await prisma.gameCatalog.update({
-                        where: { id: game.id },
-                        data: { opencriticScore: -1 }
-                    });
-                    console.log(`✗ Not found`);
-                    notFound++;
-                }
-            } catch (e) {
-                console.log(`⚠ Error`);
-                errors++;
-            }
-
-            // Rate limit
-            if (i < games.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, DELAY_MS));
-            }
+            results.forEach(r => {
+                if (r === 'updated') totalUpdated++;
+                if (r === 'not_found') totalNotFound++;
+                if (r === 'error') totalErrors++;
+            });
         }
 
-        totalUpdated += updated;
-        totalNotFound += notFound;
-        totalErrors += errors;
         round++;
-
-        console.log(`\nRound complete: Updated ${updated}, Not found ${notFound}, Errors ${errors}`);
+        console.log(`Round stats: Updated ${totalUpdated}, Not Found ${totalNotFound}, Errors ${totalErrors} (Total)`);
     }
 
-    console.log("\n" + "═".repeat(60));
     console.log(`\n🎉 SCRAPING COMPLETE!`);
-    console.log(`   Total Updated: ${totalUpdated}`);
-    console.log(`   Total Not Found: ${totalNotFound}`);
-    console.log(`   Total Errors: ${totalErrors}`);
 }
 
 main()

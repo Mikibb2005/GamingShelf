@@ -21,6 +21,9 @@ export async function GET(
                         following: true,
                         games: true
                     }
+                },
+                showcases: {
+                    orderBy: { order: 'asc' }
                 }
             }
         });
@@ -29,10 +32,27 @@ export async function GET(
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
+        // Fetch all user games to resolve showcases
+        const allUserGames = await prisma.game.findMany({
+            where: { userId: user.id }
+        });
+
+        const resolvedShowcases = user.showcases.map(s => {
+            const gameIds = JSON.parse(s.content || "[]");
+            const games = gameIds.map((id: string) => allUserGames.find(g => g.id === id)).filter(Boolean);
+            return { ...s, games };
+        });
+
         // Transform for privacy/security (don't send email publicly)
         const profileData = {
             id: user.id,
             username: user.username,
+            avatarUrl: user.avatarUrl,
+            realName: user.realName,
+            bio: user.bio,
+            socialLinks: user.socialLinks ? JSON.parse(user.socialLinks) : {},
+            favoritePlatforms: user.favoritePlatforms ? JSON.parse(user.favoritePlatforms) : [],
+            showcases: resolvedShowcases,
             joinedAt: user.createdAt,
             stats: {
                 totalGames: user._count.games,

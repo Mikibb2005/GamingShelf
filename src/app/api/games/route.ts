@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { normalizeText } from "@/lib/normalize";
+import { auth } from "@/lib/auth";
 
 // GET /api/games - Fetch all games with catalog fusion
 export async function GET() {
     try {
+        const session = await auth();
+        if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
         const games = await prisma.game.findMany({
+            where: { userId: session.user.id },
             orderBy: { updatedAt: 'desc' }
         });
 
@@ -67,18 +72,13 @@ export async function POST(request: Request) {
         const body = await request.json();
         // Basic validation could go here
 
-        // For now, simulate a default user since we haven't implemented Auth
-        let user = await prisma.user.findFirst();
-        if (!user) {
-            user = await prisma.user.create({
-                data: { username: "Miki", email: "miki@example.com" }
-            });
-        }
+        const session = await auth();
+        if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const game = await prisma.game.create({
             data: {
                 ...body,
-                userId: user.id
+                userId: session.user.id
             }
         });
 

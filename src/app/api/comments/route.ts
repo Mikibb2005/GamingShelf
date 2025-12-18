@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 
 // GET /api/comments?gameId=...
 export async function GET(request: Request) {
@@ -30,26 +31,21 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { content, gameId, username } = body;
+        const { content, gameId } = body;
 
-        if (!content || !gameId || !username) {
+        if (!content || !gameId) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 });
         }
 
-        // Resolve user (Mock auth: find by username)
-        const user = await prisma.user.findUnique({
-            where: { username }
-        });
-
-        if (!user) {
-            return NextResponse.json({ error: "User not found" }, { status: 404 });
-        }
+        // Resolve user via session
+        const session = await auth();
+        if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const comment = await prisma.comment.create({
             data: {
                 content,
                 gameId,
-                userId: user.id
+                userId: session.user.id
             },
             include: {
                 user: {

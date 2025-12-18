@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 export default function GameDetailPage() {
     const params = useParams();
@@ -254,12 +254,72 @@ export default function GameDetailPage() {
                     {/* Playtime Card */}
                     <PlaytimeCard gameId={id} initialMinutes={game.playtimeMinutes || 0} />
 
+                    {/* Dates Card */}
+                    <DatesCard gameId={id} startedAt={game.startedAt} finishedAt={game.finishedAt} />
+
                     {/* Achievements Card */}
                     {game.achievements && <AchievementsCard achievements={game.achievements} />}
+
+                    {/* Danger Zone */}
+                    <div className="card" style={{ padding: '1.5rem', marginTop: '1rem', border: '1px solid rgba(255,50,50,0.2)' }}>
+                        <h4 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--error)' }}>
+                            Zona de Peligro
+                        </h4>
+                        <DeleteGameButton gameId={id} title={game.title} />
+                    </div>
                 </div>
 
             </div>
         </div>
+    );
+}
+
+function DeleteGameButton({ gameId, title }: { gameId: string; title: string }) {
+    const router = useRouter();
+    const [deleting, setDeleting] = useState(false);
+
+    const handleDelete = async () => {
+        if (!confirm(`¿Estás seguro de que quieres eliminar "${title}" de tu biblioteca? Esta acción no se puede deshacer.`)) {
+            return;
+        }
+
+        setDeleting(true);
+        try {
+            const res = await fetch(`/api/games/${gameId}`, { method: 'DELETE' });
+            if (res.ok) {
+                router.push('/library');
+            } else {
+                alert("Error al eliminar el juego");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error de conexión");
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    return (
+        <button
+            onClick={handleDelete}
+            disabled={deleting}
+            style={{
+                width: '100%',
+                padding: '0.75rem',
+                background: 'rgba(255, 50, 50, 0.1)',
+                border: '1px solid var(--error)',
+                borderRadius: 'var(--radius-sm)',
+                color: 'var(--error)',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.background = 'var(--error)'}
+            onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 50, 50, 0.1)'}
+            onMouseDown={(e) => e.currentTarget.style.background = 'darkred'}
+        >
+            {deleting ? 'Eliminando...' : '🗑️ Eliminar de la Biblioteca'}
+        </button>
     );
 }
 
@@ -478,6 +538,78 @@ function AchievementsCard({ achievements }: { achievements: string }) {
                     )}
                 </>
             )}
+        </div>
+    );
+}
+
+function DatesCard({ gameId, startedAt, finishedAt }: { gameId: string; startedAt: string | null; finishedAt: string | null }) {
+    const [start, setStart] = useState(startedAt ? new Date(startedAt).toISOString().split('T')[0] : '');
+    const [finish, setFinish] = useState(finishedAt ? new Date(finishedAt).toISOString().split('T')[0] : '');
+    const [saving, setSaving] = useState(false);
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            await fetch(`/api/games/${gameId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    startedAt: start || null,
+                    finishedAt: finish || null
+                })
+            });
+            alert("Fechas guardadas");
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div className="card" style={{ padding: '1.5rem', marginTop: '1rem' }}>
+            <h4 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-secondary)' }}>
+                📅 Fechas
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div>
+                    <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>Inicio</label>
+                    <input
+                        type="date"
+                        value={start}
+                        onChange={e => setStart(e.target.value)}
+                        style={{
+                            width: '100%',
+                            padding: '0.5rem',
+                            background: 'var(--bg-subtle)',
+                            border: '1px solid var(--border)',
+                            borderRadius: 'var(--radius-sm)',
+                            color: 'var(--text-main)',
+                            colorScheme: 'dark'
+                        }}
+                    />
+                </div>
+                <div>
+                    <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>Fin</label>
+                    <input
+                        type="date"
+                        value={finish}
+                        onChange={e => setFinish(e.target.value)}
+                        style={{
+                            width: '100%',
+                            padding: '0.5rem',
+                            background: 'var(--bg-subtle)',
+                            border: '1px solid var(--border)',
+                            borderRadius: 'var(--radius-sm)',
+                            color: 'var(--text-main)',
+                            colorScheme: 'dark'
+                        }}
+                    />
+                </div>
+                <button className="btn-primary" onClick={handleSave} disabled={saving} style={{ width: '100%' }}>
+                    {saving ? 'Guardando...' : 'Guardar Fechas'}
+                </button>
+            </div>
         </div>
     );
 }

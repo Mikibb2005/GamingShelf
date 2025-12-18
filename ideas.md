@@ -22,3 +22,15 @@ gametracker:
 - [x] Quiero que cuando se ordene en catalogo por fecha de lanzamiento, salgan los mas recientes arriba, contando dia a dia, es decir no solo 2025, sino que por cada dia esten ordenados.
 - [x] Quiero que implementes el pasar de pagina en el /catalog
  
+ COSAS VERSION 1.1:
+ - Añadir en cada juego de tu biblioteca, que puedas poner que dia empezaste a jugarlo y que dia acabaste.
+ - Añadir en cada juego de la base de datos, el tiempo medio que se tarda en pasar, sacar de How Long To Beat.
+ - Mejorar todo el sistema del perfil, que puedas subir posts de fotos a lo instagram.
+ - Que puedas poner en tu perfil etiquetas de tus 10 plataformas favoritas.
+ - Que salga tu ranking (top 10) de los juegos valorados por ti, porque los puedes valorar con una nota numerica sobre 100, a parte de poner el comentario.
+ - Que a parte salgan toda tu bilbioteca.
+ - implementar espacios tipo cuentas de steam donde se pueden enseñar juegos favoritos, junto con fotos, etc.
+ - Poder poner foto de perfil, biografia, nombre real, otras redes sociales, etc.
+ - Implementar un sistema de chat privado entre ususarios.
+
+ 

@@ -85,7 +85,7 @@ export async function PATCH(
         return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
 
-    const { playtimeMinutes, progress, status, rating } = await request.json();
+    const { playtimeMinutes, progress, status, rating, startedAt, finishedAt } = await request.json();
 
     const updatedGame = await prisma.game.update({
         where: { id },
@@ -93,9 +93,44 @@ export async function PATCH(
             ...(playtimeMinutes !== undefined && { playtimeMinutes }),
             ...(progress !== undefined && { progress }),
             ...(status !== undefined && { status }),
-            ...(rating !== undefined && { rating })
+            ...(rating !== undefined && { rating }),
+            ...(startedAt !== undefined && { startedAt: startedAt ? new Date(startedAt) : null }),
+            ...(finishedAt !== undefined && { finishedAt: finishedAt ? new Date(finishedAt) : null })
         }
     });
 
     return NextResponse.json(updatedGame);
 }
+
+// DELETE: Remove game from library
+export async function DELETE(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    const { id } = await params;
+    const session = await auth();
+
+    if (!session?.user?.id) {
+        return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
+
+    // Check ownership
+    const game = await prisma.game.findUnique({
+        where: { id }
+    });
+
+    if (!game) {
+        return NextResponse.json({ error: "Juego no encontrado" }, { status: 404 });
+    }
+
+    if (game.userId !== session.user.id) {
+        return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+
+    await prisma.game.delete({
+        where: { id }
+    });
+
+    return NextResponse.json({ success: true });
+}
+
