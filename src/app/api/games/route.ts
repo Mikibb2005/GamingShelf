@@ -4,13 +4,13 @@ import { normalizeText } from "@/lib/normalize";
 import { auth } from "@/lib/auth";
 
 // GET /api/games - Fetch all games with catalog fusion
-export async function GET() {
+export const GET = auth(async function GET(req) {
     try {
-        const session = await auth();
-        if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        const userId = req.auth?.user?.id;
+        if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const games = await prisma.game.findMany({
-            where: { userId: session.user.id },
+            where: { userId },
             orderBy: { updatedAt: 'desc' }
         });
 
@@ -61,30 +61,32 @@ export async function GET() {
 
         return NextResponse.json(enhancedGames);
     } catch (error) {
-        console.error(error);
+        console.error("GET /api/games error:", error);
         return NextResponse.json({ error: "Failed to fetch games" }, { status: 500 });
     }
-}
+});
 
 // POST /api/games - Add a new game
-export async function POST(request: Request) {
+export const POST = auth(async function POST(req) {
     try {
-        const body = await request.json();
-        // Basic validation could go here
+        const userId = req.auth?.user?.id;
+        if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        const session = await auth();
-        if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        const body = await req.json();
+
+        // Ensure no ID is being passed to prevent conflicts and ensure userId is set correctly
+        const { id, ...data } = body;
 
         const game = await prisma.game.create({
             data: {
-                ...body,
-                userId: session.user.id
+                ...data,
+                userId: userId
             }
         });
 
         return NextResponse.json(game);
     } catch (error) {
-        console.error(error);
+        console.error("POST /api/games error:", error);
         return NextResponse.json({ error: "Failed to create game" }, { status: 500 });
     }
-}
+});

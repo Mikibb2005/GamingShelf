@@ -28,24 +28,23 @@ export async function GET(request: Request) {
 }
 
 // POST /api/comments
-export async function POST(request: Request) {
+export const POST = auth(async function POST(req) {
     try {
-        const body = await request.json();
+        const userId = req.auth?.user?.id;
+        if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+        const body = await req.json();
         const { content, gameId } = body;
 
         if (!content || !gameId) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 });
         }
 
-        // Resolve user via session
-        const session = await auth();
-        if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
         const comment = await prisma.comment.create({
             data: {
                 content,
                 gameId,
-                userId: session.user.id
+                userId: userId
             },
             include: {
                 user: {
@@ -59,4 +58,4 @@ export async function POST(request: Request) {
         console.error("Error creating comment:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
-}
+});

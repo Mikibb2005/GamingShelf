@@ -5,26 +5,25 @@ import { decrypt } from "@/lib/encryption";
 
 const STEAM_API_BASE = "https://api.steampowered.com";
 
-export async function POST() {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-        return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-
-    // Get linked Steam account
-    const steamAccount = await prisma.linkedAccount.findFirst({
-        where: {
-            userId: session.user.id,
-            provider: "Steam"
-        }
-    });
-
-    if (!steamAccount || !steamAccount.apiKey) {
-        return NextResponse.json({ error: "Cuenta de Steam no vinculada" }, { status: 400 });
-    }
-
+export const POST = auth(async function POST(req) {
     try {
+        const userId = req.auth?.user?.id;
+        if (!userId) {
+            return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+        }
+
+        // Get linked Steam account
+        const steamAccount = await prisma.linkedAccount.findFirst({
+            where: {
+                userId: userId,
+                provider: "Steam"
+            }
+        });
+
+        if (!steamAccount || !steamAccount.apiKey) {
+            return NextResponse.json({ error: "Cuenta de Steam no vinculada" }, { status: 400 });
+        }
+
         // Decrypt the API key
         const apiKey = decrypt(steamAccount.apiKey);
 
@@ -48,13 +47,13 @@ export async function POST() {
         }
 
         const existing = await prisma.game.findMany({
-            where: { userId: session.user.id, source: "Steam" },
+            where: { userId: userId, source: "Steam" },
             select: { sourceId: true, id: true }
         });
         const existingMap = new Map(existing.map((g: any) => [g.sourceId, g.id]));
 
         const ignored = await prisma.ignoredGame.findMany({
-            where: { userId: session.user.id, source: "Steam" },
+            where: { userId: userId, source: "Steam" },
             select: { sourceId: true }
         });
         const ignoredSet = new Set(ignored.map((g: any) => g.sourceId));
@@ -96,4 +95,4 @@ export async function POST() {
             details: error.message
         }, { status: 500 });
     }
-}
+});
