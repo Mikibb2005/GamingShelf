@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 interface GameDetails {
     id: string;
@@ -175,8 +176,22 @@ export default function CatalogGameDetail({ id, onClose }: Props) {
                                 height: '250px',
                                 overflow: 'hidden',
                                 borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
-                                background: `linear-gradient(to bottom, rgba(0,0,0,0.3), var(--bg-app)), url(${game.screenshots[0] || game.coverUrl}) center/cover no-repeat`,
-                            }}></div>
+                            }}>
+                                <Image
+                                    src={game.screenshots[0] || game.coverUrl || ""}
+                                    alt="Hero"
+                                    fill
+                                    priority
+                                    style={{ objectFit: 'cover' }}
+                                    className="skeleton"
+                                />
+                                <div style={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    background: 'linear-gradient(to bottom, rgba(0,0,0,0.3), var(--bg-app))',
+                                    zIndex: 1
+                                }}></div>
+                            </div>
 
                             <div style={{ padding: '0 1.5rem 1.5rem', marginTop: '-60px', position: 'relative' }}>
                                 <div style={{
@@ -187,16 +202,19 @@ export default function CatalogGameDetail({ id, onClose }: Props) {
                                     flexWrap: 'wrap'
                                 }}>
 
-                                    <div style={{ flexShrink: 0, margin: '0 auto' }}>
-                                        <img
+                                    <div style={{ flexShrink: 0, margin: '0 auto', position: 'relative', width: '180px', height: '260px' }}>
+                                        <Image
                                             src={game.coverUrl || "/placeholder.jpg"}
                                             alt="Cover"
+                                            fill
+                                            sizes="180px"
                                             style={{
-                                                width: '180px', height: '260px', objectFit: 'cover',
+                                                objectFit: 'cover',
                                                 borderRadius: 'var(--radius-md)',
                                                 boxShadow: 'var(--shadow-lg)',
                                                 border: '4px solid var(--bg-card)'
                                             }}
+                                            className="skeleton"
                                         />
                                     </div>
 

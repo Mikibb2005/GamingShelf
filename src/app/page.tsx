@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import Image from "next/image";
 import GameCard from "@/components/GameCard";
 
 export default function Home() {
@@ -59,7 +60,7 @@ export default function Home() {
           display: 'flex', gap: '1.5rem', overflowX: 'auto', paddingBottom: '1rem',
           scrollbarWidth: 'none', msOverflowStyle: 'none'
         }}>
-          {data.featured.map((game: any) => (
+          {data.featured.map((game: any, index: number) => (
             <Link href={`/catalog/${game.id}`} key={game.id} style={{
               minWidth: '220px', width: '220px', textDecoration: 'none', color: 'inherit',
               flexShrink: 0
@@ -67,18 +68,28 @@ export default function Home() {
               <div style={{
                 aspectRatio: '3/4',
                 borderRadius: 'var(--radius-md)',
-                background: `url(${game.coverUrl}) center/cover`,
+                overflow: 'hidden',
                 marginBottom: '0.75rem',
                 boxShadow: 'var(--shadow-md)',
                 position: 'relative'
               }}>
+                <Image
+                  src={game.coverUrl}
+                  alt={game.title}
+                  fill
+                  sizes="220px"
+                  style={{ objectFit: 'cover' }}
+                  priority={index < 4}
+                  className="skeleton"
+                />
                 {(game.opencriticScore || game.metacritic) && (
                   <div style={{
                     position: 'absolute', top: 10, right: 10,
                     background: (game.opencriticScore || game.metacritic) >= 80 ? '#66cc33' : '#ffcc33',
                     color: 'black', fontWeight: 800, padding: '4px 8px', borderRadius: '4px',
                     boxShadow: '0 2px 10px rgba(0,0,0,0.5)',
-                    fontSize: '0.9rem'
+                    fontSize: '0.9rem',
+                    zIndex: 1
                   }}>
                     {game.opencriticScore || game.metacritic}
                   </div>
@@ -116,13 +127,26 @@ export default function Home() {
               <div style={{
                 aspectRatio: '3/4',
                 borderRadius: 'var(--radius-md)',
-                background: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.3)), url(${game.coverUrl}) center/cover`,
+                overflow: 'hidden',
                 marginBottom: '0.75rem',
                 boxShadow: 'var(--shadow-md)',
                 position: 'relative',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 border: '1px solid rgba(255,255,255,0.1)'
               }}>
+                <Image
+                  src={game.coverUrl}
+                  alt={game.title}
+                  fill
+                  sizes="220px"
+                  style={{ objectFit: 'cover' }}
+                  className="skeleton"
+                />
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  background: 'linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.3))',
+                  zIndex: 1
+                }}></div>
                 <div style={{
                   background: 'rgba(0,0,0,0.7)',
                   border: '1px solid var(--primary)',
@@ -132,9 +156,10 @@ export default function Home() {
                   fontWeight: 700,
                   color: 'var(--primary)',
                   textTransform: 'uppercase',
-                  letterSpacing: '1px'
+                  zIndex: 2,
+                  backdropFilter: 'blur(4px)'
                 }}>
-                  Próximamente
+                  {game.releaseDate ? new Date(game.releaseDate).toLocaleDateString('es-ES', { month: 'short', year: 'numeric' }) : 'TBD'}
                 </div>
               </div>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{game.title}</h3>

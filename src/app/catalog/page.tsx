@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import CatalogGameDetail from "@/components/CatalogGameDetail";
 
 export default function CatalogPage() {
@@ -134,7 +135,13 @@ export default function CatalogPage() {
 
             {/* Grid */}
             {loading ? (
-                <div style={{ padding: '4rem', textAlign: 'center' }}>Cargando catálogo...</div>
+                <div style={{ padding: '4rem', textAlign: 'center' }}>
+                    <div className="game-grid">
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
+                            <div key={n} className="skeleton" style={{ aspectRatio: '3/4', borderRadius: 'var(--radius-md)' }}></div>
+                        ))}
+                    </div>
+                </div>
             ) : (
                 <>
                     <div className="game-grid">
@@ -147,15 +154,26 @@ export default function CatalogPage() {
                             >
                                 <div style={{
                                     aspectRatio: '3/4',
-                                    background: game.coverUrl ? `url(${game.coverUrl}) center/cover` : 'var(--bg-subtle)',
                                     borderRadius: 'var(--radius-md) var(--radius-md) 0 0',
-                                    position: 'relative'
+                                    position: 'relative',
+                                    overflow: 'hidden'
                                 }}>
+                                    {game.coverUrl && (
+                                        <Image
+                                            src={game.coverUrl}
+                                            alt={game.title}
+                                            fill
+                                            sizes="(max-width: 480px) 140px, 160px"
+                                            style={{ objectFit: 'cover' }}
+                                            className="skeleton"
+                                        />
+                                    )}
                                     {game.metacriticScore && (
                                         <div style={{
                                             position: 'absolute', top: 5, right: 5,
                                             background: game.metacriticScore >= 75 ? '#66cc33' : game.metacriticScore >= 50 ? '#ffcc33' : '#ff3333',
-                                            color: 'black', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', fontSize: '0.8rem'
+                                            color: 'black', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', fontSize: '0.8rem',
+                                            zIndex: 1
                                         }}>
                                             {game.metacriticScore}
                                         </div>

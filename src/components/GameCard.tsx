@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import styles from './GameCard.module.css';
 
 interface GameCardProps {
@@ -25,17 +26,27 @@ export default function GameCard({
     status
 }: GameCardProps) {
 
-    // Use url() for image covers, or fallback gradient
-    const backgroundStyle = coverGradient && coverGradient.startsWith('http')
-        ? { backgroundImage: `url(${coverGradient})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-        : { background: coverGradient || 'linear-gradient(135deg, #333, #555)' };
+    const isExternalImage = coverGradient && coverGradient.startsWith('http');
+    const backgroundStyle = !isExternalImage
+        ? { background: coverGradient || 'linear-gradient(135deg, #333, #555)' }
+        : {};
 
     const CardContent = () => {
         if (layout === 'list') {
             return (
                 <div className={styles.list}>
                     <div className={styles.cover} style={backgroundStyle}>
-                        <div className={styles.platformTag}>{platform}</div>
+                        {isExternalImage && (
+                            <Image
+                                src={coverGradient}
+                                alt={title}
+                                fill
+                                sizes="120px"
+                                style={{ objectFit: 'cover' }}
+                                className="skeleton"
+                            />
+                        )}
+                        <div className={styles.platformTag} style={{ zIndex: 1 }}>{platform}</div>
                     </div>
                     <div className={styles.content}>
                         <div className={styles.listInfo}>
@@ -66,7 +77,17 @@ export default function GameCard({
         return (
             <div className={styles.card}>
                 <div className={styles.cover} style={backgroundStyle}>
-                    <div className={styles.platformTag}>{platform}</div>
+                    {isExternalImage && (
+                        <Image
+                            src={coverGradient}
+                            alt={title}
+                            fill
+                            sizes="(max-width: 768px) 160px, 200px"
+                            style={{ objectFit: 'cover' }}
+                            className="skeleton"
+                        />
+                    )}
+                    <div className={styles.platformTag} style={{ zIndex: 1 }}>{platform}</div>
                     {/* Achievement badge in grid view */}
                     {achievements && achievements.total > 0 && (
                         <div style={{
@@ -78,7 +99,8 @@ export default function GameCard({
                             padding: '2px 6px',
                             borderRadius: '4px',
                             fontSize: '0.75rem',
-                            fontWeight: 600
+                            fontWeight: 600,
+                            zIndex: 1
                         }}>
                             🏆 {achievements.unlocked}/{achievements.total}
                         </div>
