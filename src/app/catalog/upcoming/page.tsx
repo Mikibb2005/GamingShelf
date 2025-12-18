@@ -79,7 +79,7 @@ export default function UpcomingPage() {
                             }}>
                                 {month}
                             </h2>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '2rem' }}>
+                            <div className="game-grid">
                                 {grouped[month].map((game: any) => (
                                     <div
                                         key={game.id}

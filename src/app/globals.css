@@ -60,24 +60,33 @@ a {
 .gradient-text {
   background: linear-gradient(135deg, #fff 0%, #a5a5a5 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .title-gradient {
   background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 1rem;
+  padding: 0 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 1rem;
+  }
 }
 
 /* Scrollbar Styling */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -109,6 +118,10 @@ button {
   font-weight: 600;
   transition: all 0.2s ease;
   box-shadow: 0 0 20px -5px var(--primary-glow);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .btn-primary:hover {
@@ -126,6 +139,10 @@ button {
   font-weight: 500;
   border: 1px solid var(--border);
   transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .btn-secondary:hover:not(:disabled) {
@@ -148,14 +165,51 @@ button {
 .main-content {
   flex: 1;
   width: 100%;
-  padding-bottom: 80px;
+  padding-bottom: 90px;
   /* Space for mobile bottom nav */
 }
 
 @media (min-width: 769px) {
   .main-content {
     margin-left: 250px;
-    /* Matches Sidebar width */
     padding-bottom: 0;
+  }
+}
+
+/* Responsive Grid Helper */
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1.5rem;
+}
+
+@media (max-width: 480px) {
+  .game-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1rem;
+  }
+}
+
+/* Typography responsiveness */
+@media (max-width: 768px) {
+  h1 {
+    font-size: 1.8rem !important;
+  }
+
+  h2 {
+    font-size: 1.4rem !important;
+  }
+}
+
+/* Utility to hide on mobile */
+@media (max-width: 768px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .hide-desktop {
+    display: none !important;
   }
 }

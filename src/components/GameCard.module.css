@@ -85,6 +85,12 @@
     overflow: hidden;
 }
 
+@media (max-width: 600px) {
+    .list {
+        height: 100px;
+    }
+}
+
 .list:hover {
     background: var(--bg-card-hover);
     transform: translateX(4px);
@@ -96,6 +102,12 @@
     height: 100%;
     aspect-ratio: auto;
     flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+    .list .cover {
+        width: 80px;
+    }
 }
 
 .list .platformTag {
@@ -112,9 +124,21 @@
     justify-content: space-between;
 }
 
+@media (max-width: 600px) {
+    .list .content {
+        padding: 0 1rem;
+    }
+}
+
 .list .title {
     font-size: 1.2rem;
     margin-bottom: 0.25rem;
+}
+
+@media (max-width: 600px) {
+    .list .title {
+        font-size: 0.95rem;
+    }
 }
 
 .list .meta {
@@ -134,6 +158,16 @@
     align-items: center;
     color: var(--text-secondary);
     font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+    .listStats {
+        gap: 1rem;
+    }
+
+    .statLabel {
+        display: none;
+    }
 }
 
 .statItem {

@@ -172,21 +172,27 @@ export default function CatalogGameDetail({ id, onClose }: Props) {
                         <>
                             <div style={{
                                 position: 'relative',
-                                height: '350px',
+                                height: '250px',
                                 overflow: 'hidden',
                                 borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
                                 background: `linear-gradient(to bottom, rgba(0,0,0,0.3), var(--bg-app)), url(${game.screenshots[0] || game.coverUrl}) center/cover no-repeat`,
                             }}></div>
 
-                            <div style={{ padding: '0 2rem 2rem', marginTop: '-60px', position: 'relative' }}>
-                                <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                            <div style={{ padding: '0 1.5rem 1.5rem', marginTop: '-60px', position: 'relative' }}>
+                                <div style={{
+                                    display: 'flex',
+                                    gap: '1.5rem',
+                                    alignItems: 'flex-start',
+                                    flexDirection: 'row',
+                                    flexWrap: 'wrap'
+                                }}>
 
-                                    <div style={{ flexShrink: 0 }}>
+                                    <div style={{ flexShrink: 0, margin: '0 auto' }}>
                                         <img
                                             src={game.coverUrl || "/placeholder.jpg"}
                                             alt="Cover"
                                             style={{
-                                                width: '200px', height: '300px', objectFit: 'cover',
+                                                width: '180px', height: '260px', objectFit: 'cover',
                                                 borderRadius: 'var(--radius-md)',
                                                 boxShadow: 'var(--shadow-lg)',
                                                 border: '4px solid var(--bg-card)'
@@ -194,12 +200,12 @@ export default function CatalogGameDetail({ id, onClose }: Props) {
                                         />
                                     </div>
 
-                                    <div style={{ flex: 1, minWidth: '300px' }}>
-                                        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.5rem' }}>{game.title}</h1>
-                                        <div style={{ display: 'flex', gap: '1rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', alignItems: 'center' }}>
+                                    <div style={{ flex: 1, minWidth: '260px' }}>
+                                        <h1 style={{ fontSize: '2.2rem', fontWeight: 800, marginBottom: '0.5rem', textAlign: 'inherit' }}>{game.title}</h1>
+                                        <div style={{ display: 'flex', gap: '1rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                                             <span>{game.releaseYear}</span>
                                             <span>•</span>
-                                            <span>{game.developer}</span>
+                                            <span style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{game.developer}</span>
                                             <span style={{
                                                 background: game.metacriticScore
                                                     ? (game.metacriticScore >= 75 ? '#66cc33' : game.metacriticScore >= 50 ? '#ffcc33' : '#ff3333')
@@ -211,34 +217,34 @@ export default function CatalogGameDetail({ id, onClose }: Props) {
                                             </span>
                                         </div>
 
-                                        <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+                                        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
                                             <button
                                                 onClick={() => setShowAddModal(true)}
                                                 className="btn-primary"
-                                                style={{ fontSize: '1.1rem', padding: '0.75rem 2rem' }}
+                                                style={{ fontSize: '1rem', padding: '0.75rem 1.5rem', width: '100%', maxWidth: '300px' }}
                                             >
                                                 + Añadir a mi Colección
                                             </button>
                                         </div>
 
-                                        <div style={{ marginBottom: '2rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                                            <div style={{ marginBottom: '0.5rem' }}><strong>Generos:</strong> {game.genres}</div>
-                                            <div><strong>Plataformas:</strong> {game.platforms.join(", ")}</div>
-                                        </div>
-
                                         {game.description && (
-                                            <div style={{ lineHeight: 1.6, maxWidth: '800px', background: 'var(--bg-card)', padding: '1.5rem', borderRadius: 'var(--radius-md)' }}>
-                                                <h3 style={{ marginBottom: '1rem' }}>Sinopsis</h3>
+                                            <div style={{ lineHeight: 1.6, maxWidth: '800px', background: 'var(--bg-card)', padding: '1.2rem', borderRadius: 'var(--radius-md)', fontSize: '0.95rem' }}>
+                                                <h3 style={{ marginBottom: '0.75rem', fontSize: '1.1rem' }}>Sinopsis</h3>
                                                 <p>{game.description}</p>
                                             </div>
                                         )}
+
+                                        <div style={{ marginTop: '1.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                                            <div style={{ marginBottom: '0.4rem' }}><strong>Generos:</strong> {game.genres}</div>
+                                            <div><strong>Plataformas:</strong> {game.platforms.join(", ")}</div>
+                                        </div>
                                     </div>
                                 </div>
 
                                 {game.screenshots.length > 0 && (
-                                    <div style={{ marginTop: '4rem' }}>
-                                        <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Galería</h2>
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+                                    <div style={{ marginTop: '3rem' }}>
+                                        <h2 style={{ fontSize: '1.3rem', marginBottom: '1.2rem' }}>Galería</h2>
+                                        <div className="game-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}>
                                             {game.screenshots.map((s, i) => (
                                                 <img
                                                     key={i}
@@ -246,8 +252,6 @@ export default function CatalogGameDetail({ id, onClose }: Props) {
                                                     alt=""
                                                     style={{ width: '100%', borderRadius: 'var(--radius-sm)', cursor: 'pointer', transition: 'transform 0.2s' }}
                                                     onClick={() => setSelectedImage(i)}
-                                                    onMouseOver={e => e.currentTarget.style.transform = 'scale(1.05)'}
-                                                    onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
                                                 />
                                             ))}
                                         </div>

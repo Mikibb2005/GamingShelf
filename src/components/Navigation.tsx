@@ -61,13 +61,13 @@ export default function Navigation() {
                             <IconFeed />
                             <span>Feed</span>
                         </Link>
-                        <Link href="/messages" className={styles.item}>
+                        <Link href="/messages" className={`${styles.item} hide-mobile`}>
                             <IconMail />
                             <span>Mensajes</span>
                         </Link>
                     </>
                 )}
-                <Link href="/forum" className={styles.item}>
+                <Link href="/forum" className={`${styles.item} hide-mobile`}>
                     <IconGamepad />
                     <span>Foro</span>
                 </Link>
@@ -83,13 +83,13 @@ export default function Navigation() {
                             <IconUser />
                             <span>{session.user.name}</span>
                         </Link>
-                        <Link href="/settings" className={styles.item}>
+                        <Link href="/settings" className={`${styles.item} hide-mobile`}>
                             <IconSettings />
                             <span>Ajustes</span>
                         </Link>
                         <button
                             onClick={() => signOut()}
-                            className={styles.item}
+                            className={`${styles.item} hide-mobile`}
                             style={{ background: 'none', border: 'none', cursor: 'pointer' }}
                         >
                             <IconLogout />

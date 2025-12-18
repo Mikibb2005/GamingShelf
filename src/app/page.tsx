@@ -152,9 +152,7 @@ export default function Home() {
           🕹️ Jugando Ahora
         </h2>
         {data.playing.length > 0 ? (
-          <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1.5rem'
-          }}>
+          <div className="game-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
             {data.playing.map((game: any) => (
               <GameCard
                 key={game.id}
@@ -184,7 +182,7 @@ export default function Home() {
         <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           💬 Reseñas de la Comunidad
         </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+        <div className="game-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
           {data.reviews.map((review: any) => (
             <div key={review.id} className="glass-panel" style={{ padding: '1.5rem', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {/* User & Game Header */}

@@ -76,8 +76,15 @@ export default function LibraryPage() {
     return (
         <div className="container" style={{ padding: '2rem 1rem' }}>
 
-            <header style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                <div>
+            <header style={{
+                marginBottom: '2rem',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '1rem'
+            }}>
+                <div style={{ flex: 1, minWidth: '200px' }}>
                     <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.5rem' }}>
                         Tu <span className="title-gradient">Colección</span>
                     </h1>
@@ -89,19 +96,20 @@ export default function LibraryPage() {
             </header>
 
             {/* Ownership Tabs */}
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
                 {[{ value: 'All', label: 'Todo' }, { value: 'wishlist', label: '❤️ WishList' }, { value: 'owned', label: '✅ Lo Tengo' }].map(tab => (
                     <button
                         key={tab.value}
                         onClick={() => setSelectedOwnership(tab.value)}
                         style={{
-                            padding: '0.5rem 1.5rem',
+                            padding: '0.5rem 1.2rem',
                             borderRadius: 'var(--radius-lg)',
                             border: selectedOwnership === tab.value ? '2px solid var(--primary)' : '1px solid var(--border)',
                             background: selectedOwnership === tab.value ? 'var(--primary)' : 'transparent',
                             color: selectedOwnership === tab.value ? 'white' : 'var(--text-main)',
                             cursor: 'pointer',
-                            fontWeight: 600
+                            fontWeight: 600,
+                            whiteSpace: 'nowrap'
                         }}
                     >
                         {tab.label}
@@ -120,13 +128,14 @@ export default function LibraryPage() {
             />
 
             {filteredGames.length > 0 ? (
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: viewMode === 'grid'
-                        ? 'repeat(auto-fill, minmax(200px, 1fr))'
-                        : '1fr',
-                    gap: '1.5rem'
-                }}>
+                <div
+                    className={viewMode === 'grid' ? 'game-grid' : ''}
+                    style={{
+                        display: viewMode === 'list' ? 'flex' : undefined,
+                        flexDirection: viewMode === 'list' ? 'column' : undefined,
+                        gap: '1.2rem'
+                    }}
+                >
                     {filteredGames.map(game => (
                         <GameCard
                             key={game.id}

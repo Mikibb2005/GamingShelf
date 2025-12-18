@@ -137,7 +137,7 @@ export default function CatalogPage() {
                 <div style={{ padding: '4rem', textAlign: 'center' }}>Cargando catálogo...</div>
             ) : (
                 <>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1.5rem' }}>
+                    <div className="game-grid">
                         {games.map(game => (
                             <div
                                 key={game.id}
