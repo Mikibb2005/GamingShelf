@@ -3,12 +3,12 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(req: Request, { params }: { params: { userId: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ userId: string }> }) {
+    const { userId: targetUserId } = await params;
     const session = await auth();
     if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const currentUserId = session.user.id;
-    const targetUserId = params.userId;
 
     // Fetch conversation
     const messages = await prisma.message.findMany({
