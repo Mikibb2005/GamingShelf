@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import ProgressBar from "@/components/ProgressBar";
 
 interface Category {
     id: string;
@@ -49,7 +50,7 @@ export default function ForumPage() {
     }, []);
 
     if (loading) {
-        return <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>Cargando foro...</div>;
+        return <ProgressBar />;
     }
 
     return (

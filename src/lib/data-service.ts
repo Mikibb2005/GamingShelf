@@ -15,7 +15,8 @@ export const getFeaturedGames = unstable_cache(
                 releaseDate: {
                     gte: sixMonthsAgo,
                     lte: new Date()
-                }
+                },
+                isFanGame: false
             },
             orderBy: [
                 { opencriticScore: { sort: 'desc', nulls: 'last' } },
@@ -38,7 +39,8 @@ export const getUpcomingCatalog = unstable_cache(
                     { releaseDate: null, releaseYear: { gte: new Date().getFullYear() } },
                     { releaseDate: null, releaseYear: null }
                 ],
-                igdbId: { not: null }
+                igdbId: { not: null },
+                isFanGame: false
             },
             orderBy: [
                 { releaseDate: { sort: 'asc', nulls: 'last' } },

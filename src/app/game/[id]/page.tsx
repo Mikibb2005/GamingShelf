@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import ProgressBar from "@/components/ProgressBar";
 
 export default function GameDetailPage() {
     const params = useParams();
@@ -56,7 +57,7 @@ export default function GameDetailPage() {
         }
     };
 
-    if (loading) return <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>Cargando...</div>;
+    if (loading) return <ProgressBar />;
     if (!game) return <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>Juego no encontrado</div>;
 
     const bgStyle = {

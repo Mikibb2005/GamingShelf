@@ -44,9 +44,9 @@ export async function syncNewGamesFromIGDB(force = false) {
         // 3. Fetch from IGDB
         // categories: 0=Main, 8=Remake, 9=Remaster
         const query = `
-            fields name, slug, cover.url, first_release_date, summary, aggregated_rating,
+            fields name, slug, cover.url, first_release_date, summary, aggregated_rating, category,
                    genres.name, platforms.name, involved_companies.company.name, involved_companies.developer, involved_companies.publisher;
-            where first_release_date > ${startTime} & category = (0, 8, 9) & cover != null;
+            where first_release_date > ${startTime} & category = (0, 5, 8, 9, 10, 15) & cover != null;
             sort first_release_date desc;
             limit ${MAX_GAMES_PER_SYNC};
         `;
@@ -100,6 +100,11 @@ export async function syncNewGamesFromIGDB(force = false) {
             // Strip accents
             const titleNormalized = normalizeText(g.name);
 
+            // Heuristic for Fan Games / Hackroms
+            const fanKeywords = ['fan game', 'hackrom', 'hack rom', 'hack edition', 'v0.', 'prototype'];
+            const isFanGame = g.category === 5 || g.category === 10 || g.category === 15 ||
+                fanKeywords.some(kw => g.name.toLowerCase().includes(kw));
+
             // Optional: Get more accurate score from OpenCritic
             const ocData = await getOpenCriticScore(g.name);
 
@@ -120,6 +125,8 @@ export async function syncNewGamesFromIGDB(force = false) {
                     opencriticId: ocData?.id || null,
                     opencriticScore: ocData?.score || null,
                     igdbId: g.id,
+                    category: g.category || 0,
+                    isFanGame: isFanGame
                 },
                 create: {
                     slug: g.slug,
@@ -137,6 +144,8 @@ export async function syncNewGamesFromIGDB(force = false) {
                     opencriticId: ocData?.id || null,
                     opencriticScore: ocData?.score || null,
                     igdbId: g.id,
+                    category: g.category || 0,
+                    isFanGame: isFanGame
                 }
             });
             addedCount++;
@@ -170,9 +179,9 @@ async function syncMostAnticipatedGames() {
     const now = Math.floor(Date.now() / 1000);
 
     const query = `
-        fields name, slug, cover.url, first_release_date, summary, aggregated_rating, hypes, follows,
+        fields name, slug, cover.url, first_release_date, summary, aggregated_rating, hypes, follows, category,
                genres.name, platforms.name, involved_companies.company.name, involved_companies.developer, involved_companies.publisher;
-        where (first_release_date > ${now} | first_release_date = null) & (hypes > 30 | follows > 50) & cover != null;
+        where (first_release_date > ${now} | first_release_date = null) & (hypes > 30 | follows > 50) & category = (0, 5, 8, 9, 10, 15) & cover != null;
         sort hypes desc;
         limit 50;
     `;
@@ -192,6 +201,10 @@ async function syncMostAnticipatedGames() {
         const genres = g.genres?.map((gen: any) => gen.name).join(", ") || null;
         const coverUrl = g.cover?.url ? (g.cover.url.startsWith("//") ? `https:${g.cover.url.replace("t_thumb", "t_cover_big")}` : g.cover.url.replace("t_thumb", "t_cover_big")) : null;
 
+        const fanKeywords = ['fan game', 'hackrom', 'hack rom', 'hack edition', 'v0.', 'prototype'];
+        const isFanGame = g.category === 5 || g.category === 10 || g.category === 15 ||
+            fanKeywords.some(kw => g.name.toLowerCase().includes(kw));
+
         await prisma.gameCatalog.upsert({
             where: { slug: g.slug },
             update: {
@@ -205,6 +218,8 @@ async function syncMostAnticipatedGames() {
                 platforms: JSON.stringify(platforms),
                 genres,
                 igdbId: g.id,
+                category: g.category || 0,
+                isFanGame: isFanGame
             },
             create: {
                 slug: g.slug,
@@ -219,6 +234,8 @@ async function syncMostAnticipatedGames() {
                 platforms: JSON.stringify(platforms),
                 genres,
                 igdbId: g.id,
+                category: g.category || 0,
+                isFanGame: isFanGame
             }
         });
     }

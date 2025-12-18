@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import GameCard from "@/components/GameCard";
 import { UnifiedGame } from "@/services/adapters/types";
+import ProgressBar from "@/components/ProgressBar";
 
 interface UserProfile {
     id: string;
@@ -101,7 +102,7 @@ export default function ProfilePage() {
         router.push(`/messages?userId=${profile?.id}`);
     };
 
-    if (loading) return <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>Cargando perfil...</div>;
+    if (loading) return <ProgressBar />;
     if (!profile) return <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>Usuario no encontrado</div>;
 
     return (

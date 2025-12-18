@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
+import ProgressBar from "@/components/ProgressBar";
 import { useRouter } from "next/navigation";
 import SyncModal from "@/components/SyncModal";
 import IgnoredGamesModal from "@/components/IgnoredGamesModal";
@@ -192,7 +193,7 @@ export default function SettingsPage() {
     };
 
     if (status === "loading") {
-        return <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>Cargando...</div>;
+        return <ProgressBar />;
     }
 
     const hasRA = linkedAccounts.some(a => a.provider === "RetroAchievements");

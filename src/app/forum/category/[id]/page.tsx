@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import ProgressBar from "@/components/ProgressBar";
 
 interface Topic {
     id: string;
@@ -51,7 +52,7 @@ export default function CategoryPage() {
         loadCategory();
     }, [categoryId]);
 
-    if (loading) return <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>Cargando...</div>;
+    if (loading) return <ProgressBar />;
     if (!category) return <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>Categoría no encontrada</div>;
 
     return (

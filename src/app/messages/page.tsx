@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import ProgressBar from "@/components/ProgressBar";
 
 export default function MessagesPage() {
     const { data: session, status } = useSession();
@@ -106,7 +107,7 @@ export default function MessagesPage() {
         }
     };
 
-    if (status === "loading" || loading) return <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>Cargando mensajes...</div>;
+    if (status === "loading" || loading) return <ProgressBar />;
 
     return (
         <div className="container" style={{ padding: '2rem 1rem', height: 'calc(100vh - 100px)', display: 'flex', gap: '1.5rem' }}>
@@ -167,7 +168,7 @@ export default function MessagesPage() {
                             style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
                         >
                             {loadingChat ? (
-                                <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Cargando conversación...</div>
+                                <ProgressBar />
                             ) : (
                                 <>
                                     {messages.map(msg => (

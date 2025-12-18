@@ -1,4 +1,4 @@
-import { syncNewGamesFromIGDB } from "./src/lib/igdb-sync";
+import { syncNewGamesFromIGDB } from "./src/lib/igdb-sync.ts";
 
 async function run() {
     process.env.NODE_ENV = "development"; // Bypass security check if needed locally

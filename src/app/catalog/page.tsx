@@ -14,6 +14,7 @@ export default function CatalogPage() {
     const [debouncedSearch, setDebouncedSearch] = useState("");
     const [sortBy, setSortBy] = useState("relevance");
     const [selectedPlatform, setSelectedPlatform] = useState("All");
+    const [includeFanGames, setIncludeFanGames] = useState(false);
     const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
 
     // Debounce search
@@ -27,7 +28,7 @@ export default function CatalogPage() {
         async function load() {
             setLoading(true);
             try {
-                const res = await fetch(`/api/catalog/search?page=${page}&q=${encodeURIComponent(debouncedSearch)}&sort=${sortBy}&platform=${encodeURIComponent(selectedPlatform)}`);
+                const res = await fetch(`/api/catalog/search?page=${page}&q=${encodeURIComponent(debouncedSearch)}&sort=${sortBy}&platform=${encodeURIComponent(selectedPlatform)}&includeFanGames=${includeFanGames}`);
                 if (res.ok) {
                     const data = await res.json();
                     setGames(data.results);
@@ -40,7 +41,7 @@ export default function CatalogPage() {
             }
         }
         load();
-    }, [page, debouncedSearch, sortBy, selectedPlatform]);
+    }, [page, debouncedSearch, sortBy, selectedPlatform, includeFanGames]);
 
     return (
         <div className="container" style={{ padding: '2rem 1rem' }}>
@@ -131,6 +132,11 @@ export default function CatalogPage() {
                     <option value="releaseDate">Fecha (Reciente)</option>
                     <option value="rating">Nota (Metacritic)</option>
                 </select>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', background: 'var(--bg-subtle)', padding: '0.4rem 0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} onClick={() => { setIncludeFanGames(!includeFanGames); setPage(1); }}>
+                    <input type="checkbox" checked={includeFanGames} readOnly style={{ cursor: 'pointer' }} />
+                    <span style={{ fontSize: '0.9rem', color: 'var(--text-main)', userSelect: 'none' }}>Mostrar Fan Games / Hacks</span>
+                </div>
             </div>
 
             {/* Grid */}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import ProgressBar from "@/components/ProgressBar";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import GameCard from "@/components/GameCard";
@@ -84,7 +85,7 @@ export default function FeedPage() {
     };
 
     if (status === "loading" || loading) {
-        return <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>Cargando feed...</div>;
+        return <ProgressBar />;
     }
 
     if (!session?.user) {

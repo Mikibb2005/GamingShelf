@@ -6,6 +6,7 @@ import GameCard from "@/components/GameCard";
 import FilterBar from "@/components/library/FilterBar";
 import ViewToggle from "@/components/library/ViewToggle";
 import { getAllPlatformsSorted } from "@/lib/platforms";
+import ProgressBar from "@/components/ProgressBar";
 
 export default function LibraryPage() {
     const [games, setGames] = useState<UnifiedGame[]>([]);
@@ -65,13 +66,7 @@ export default function LibraryPage() {
     // Show ALL platforms, not just those with games
     const availablePlatforms = getAllPlatformsSorted();
 
-    if (loading) {
-        return (
-            <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>
-                <h2 className="title-gradient">Cargando biblioteca...</h2>
-            </div>
-        );
-    }
+    if (loading) return <ProgressBar />;
 
     return (
         <div className="container" style={{ padding: '2rem 1rem' }}>

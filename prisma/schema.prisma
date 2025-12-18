@@ -68,6 +68,8 @@ model GameCatalog {
   // Classification
   genres    String? // Comma-separated or JSON
   platforms String? // JSON array of platform names
+  category  Int?     // IGDB Category (0=Main, 5=Mod/Hackrom, 10=Prototype, etc)
+  isFanGame Boolean @default(false)
 
   // Ratings
   metacritic      Int? // Legacy/IGDB rating

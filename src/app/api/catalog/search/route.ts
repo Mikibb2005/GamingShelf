@@ -10,6 +10,7 @@ export async function GET(request: Request) {
     const sort = searchParams.get("sort") || "title"; // title, releaseYear, metacritic
     const platform = searchParams.get("platform"); // Platform filter
     const upcomingOnly = searchParams.get("upcoming") === "true";
+    const includeFanGames = searchParams.get("includeFanGames") === "true";
     const pageSize = 50;
 
     // Build where clause
@@ -18,6 +19,11 @@ export async function GET(request: Request) {
 
     if (normalizedQuery) {
         where.titleNormalized = { contains: normalizedQuery };
+    }
+
+    // Default: Hide Fan Games / Hackroms unless requested
+    if (!includeFanGames) {
+        where.isFanGame = false;
     }
 
     if (upcomingOnly) {
