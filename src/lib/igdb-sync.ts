@@ -172,13 +172,18 @@ async function syncMostAnticipatedGames() {
     const query = `
         fields name, slug, cover.url, first_release_date, summary, aggregated_rating, hypes, follows,
                genres.name, platforms.name, involved_companies.company.name, involved_companies.developer, involved_companies.publisher;
-        where (first_release_date > ${now} | first_release_date = null) & category = (0, 8, 9) & cover != null & (hypes > 10 | follows > 20);
+        where (first_release_date > ${now} | first_release_date = null) & (hypes > 30 | follows > 50) & cover != null;
         sort hypes desc;
         limit 50;
     `;
 
     const games = await igdbFetch("games", query);
-    if (!games || !Array.isArray(games)) return;
+    if (!games || !Array.isArray(games)) {
+        console.log("[IGDB Sync] No anticipated games found.");
+        return;
+    }
+
+    console.log(`[IGDB Sync] Found ${games.length} anticipated games. Syncing...`);
 
     for (const g of games) {
         const developers = g.involved_companies?.filter((c: any) => c.developer).map((c: any) => c.company.name).join(", ") || null;

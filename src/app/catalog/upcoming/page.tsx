@@ -12,20 +12,18 @@ export default function UpcomingPage() {
     useEffect(() => {
         async function load() {
             try {
-                // Fetch upcoming games specifically
-                const res = await fetch('/api/catalog/search?sort=releaseDate&page=1');
+                // Fetch upcoming games specifically using the new API flag
+                const res = await fetch('/api/catalog/search?upcoming=true&sort=releaseDate&page=1');
                 if (res.ok) {
                     const data = await res.json();
 
-                    // Filter to only show future games and sort ascending
-                    const now = new Date();
-                    const list = data.results
-                        .filter((g: any) => !g.releaseDate || new Date(g.releaseDate) >= now)
-                        .sort((a: any, b: any) => {
-                            if (!a.releaseDate) return 1;
-                            if (!b.releaseDate) return -1;
-                            return new Date(a.releaseDate).getTime() - new Date(b.releaseDate).getTime();
-                        });
+                    const list = data.results.sort((a: any, b: any) => {
+                        // Sort: Close date first, then TBDs
+                        if (!a.releaseDate && !b.releaseDate) return 0;
+                        if (!a.releaseDate) return 1;
+                        if (!b.releaseDate) return -1;
+                        return new Date(a.releaseDate).getTime() - new Date(b.releaseDate).getTime();
+                    });
 
                     setGames(list);
                 }

@@ -9,7 +9,8 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get("page") || "1");
     const sort = searchParams.get("sort") || "title"; // title, releaseYear, metacritic
     const platform = searchParams.get("platform"); // Platform filter
-    const pageSize = 20;
+    const upcomingOnly = searchParams.get("upcoming") === "true";
+    const pageSize = 50;
 
     // Build where clause
     const normalizedQuery = query ? normalizeText(query) : null;
@@ -17,6 +18,14 @@ export async function GET(request: Request) {
 
     if (normalizedQuery) {
         where.titleNormalized = { contains: normalizedQuery };
+    }
+
+    if (upcomingOnly) {
+        const now = new Date();
+        where.OR = [
+            { releaseDate: { gte: now } },
+            { releaseDate: null, igdbId: { not: null } } // Anticipated TBD
+        ];
     }
 
     // Platform filter - search in JSON array string
