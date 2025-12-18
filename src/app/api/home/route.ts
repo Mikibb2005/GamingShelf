@@ -7,23 +7,23 @@ export async function GET(req: Request) {
         const session = await auth();
 
         // 1. Featured (Recent Hits)
-        // Released in last 90 days, sorted by score, then date
-        const threeMonthsAgo = new Date();
-        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+        // Released in last 6 months, sorted by score, then date
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
         const featured = await prisma.gameCatalog.findMany({
             where: {
                 releaseDate: {
-                    gte: threeMonthsAgo,
+                    gte: sixMonthsAgo,
                     lte: new Date()
-                },
-                opencriticScore: { not: null }
+                }
             },
             orderBy: [
-                { opencriticScore: 'desc' },
+                { opencriticScore: { sort: 'desc', nulls: 'last' } },
+                { metacritic: { sort: 'desc', nulls: 'last' } },
                 { releaseDate: 'desc' }
             ],
-            take: 10
+            take: 12
         });
 
         // 2. Upcoming (Newer than today)
@@ -32,7 +32,7 @@ export async function GET(req: Request) {
                 releaseDate: { gt: new Date() }
             },
             orderBy: { releaseDate: 'asc' },
-            take: 10
+            take: 12
         });
 
         // 3. Playing (User)
@@ -58,16 +58,17 @@ export async function GET(req: Request) {
             }
         });
 
-        // Fallback: If no featured recent games, get any top rated
-        if (featured.length < 5) {
+        // Fallback: If no featured recent games, get any top rated (already released)
+        if (featured.length < 6) {
             const existingIds = featured.map(g => g.id);
             const extra = await prisma.gameCatalog.findMany({
                 where: {
                     opencriticScore: { gt: 85 },
+                    releaseDate: { lte: new Date() }, // Only released games
                     id: { notIn: existingIds }
                 },
                 orderBy: { releaseDate: 'desc' },
-                take: 10 - featured.length
+                take: 12 - featured.length
             });
             featured.push(...extra);
         }

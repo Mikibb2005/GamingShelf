@@ -52,8 +52,8 @@ export default function Home() {
 
       {/* 1. NEW RELEASES & TRENDING */}
       <section style={{ marginBottom: '4rem' }}>
-        <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          🔥 Tendencias y Novedades
+        <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+          <span>🔥</span> Tendencias y Novedades
         </h2>
         <div style={{
           display: 'flex', gap: '1.5rem', overflowX: 'auto', paddingBottom: '1rem',
@@ -72,43 +72,69 @@ export default function Home() {
                 boxShadow: 'var(--shadow-md)',
                 position: 'relative'
               }}>
-                {game.opencriticScore && (
+                {(game.opencriticScore || game.metacritic) && (
                   <div style={{
                     position: 'absolute', top: 10, right: 10,
-                    background: game.opencriticScore >= 85 ? '#66cc33' : '#ffcc33',
+                    background: (game.opencriticScore || game.metacritic) >= 80 ? '#66cc33' : '#ffcc33',
                     color: 'black', fontWeight: 800, padding: '4px 8px', borderRadius: '4px',
-                    boxShadow: '0 2px 10px rgba(0,0,0,0.5)'
+                    boxShadow: '0 2px 10px rgba(0,0,0,0.5)',
+                    fontSize: '0.9rem'
                   }}>
-                    {game.opencriticScore}
+                    {game.opencriticScore || game.metacritic}
                   </div>
                 )}
               </div>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{game.title}</h3>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                 <span>{new Date(game.releaseDate).getFullYear()}</span>
-                <span>{game.developer}</span>
+                <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{game.developer}</span>
               </div>
             </Link>
           ))}
+        </div>
+      </section>
+
+      {/* 1b. UPCOMING */}
+      <section style={{ marginBottom: '4rem' }}>
+        <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+          <span>📅</span> Próximos Lanzamientos
+        </h2>
+        <div style={{
+          display: 'flex', gap: '1.5rem', overflowX: 'auto', paddingBottom: '1rem',
+          scrollbarWidth: 'none', msOverflowStyle: 'none'
+        }}>
           {data.upcoming.map((game: any) => (
             <Link href={`/catalog/${game.id}`} key={game.id} style={{
               minWidth: '220px', width: '220px', textDecoration: 'none', color: 'inherit',
-              flexShrink: 0, opacity: 0.8
+              flexShrink: 0
             }}>
               <div style={{
                 aspectRatio: '3/4',
                 borderRadius: 'var(--radius-md)',
-                background: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${game.coverUrl}) center/cover`,
+                background: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.3)), url(${game.coverUrl}) center/cover`,
                 marginBottom: '0.75rem',
                 boxShadow: 'var(--shadow-md)',
                 position: 'relative',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: '1px solid rgba(255,255,255,0.1)'
               }}>
-                <span style={{ border: '1px solid white', padding: '0.5rem 1rem', borderRadius: '30px', fontWeight: 600 }}>PRÓXIMAMENTE</span>
+                <div style={{
+                  background: 'rgba(0,0,0,0.7)',
+                  border: '1px solid var(--primary)',
+                  padding: '4px 12px',
+                  borderRadius: '20px',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: 'var(--primary)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px'
+                }}>
+                  Próximamente
+                </div>
               </div>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{game.title}</h3>
-              <div style={{ fontSize: '0.85rem', color: 'var(--primary)' }}>
-                {new Date(game.releaseDate).toLocaleDateString()}
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                Lanzamiento: <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{new Date(game.releaseDate).toLocaleDateString()}</span>
               </div>
             </Link>
           ))}
