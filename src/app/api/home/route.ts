@@ -26,13 +26,21 @@ export async function GET(req: Request) {
             take: 12
         });
 
-        // 2. Upcoming (Newer than today)
+        // 2. Upcoming (Newer than today or TBD but anticipated)
         const upcoming = await prisma.gameCatalog.findMany({
             where: {
-                releaseDate: { gt: new Date() }
+                OR: [
+                    { releaseDate: { gt: new Date() } },
+                    { releaseDate: null, releaseYear: { gte: new Date().getFullYear() } },
+                    { releaseDate: null, releaseYear: null } // Games like GTA VI often start without any date
+                ],
+                igdbId: { not: null } // Ensure it's a real synced game
             },
-            orderBy: { releaseDate: 'asc' },
-            take: 12
+            orderBy: [
+                { releaseDate: { sort: 'asc', nulls: 'last' } },
+                { releaseYear: { sort: 'asc', nulls: 'last' } }
+            ],
+            take: 15
         });
 
         // 3. Playing (User)

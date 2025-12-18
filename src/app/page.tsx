@@ -96,9 +96,14 @@ export default function Home() {
 
       {/* 1b. UPCOMING */}
       <section style={{ marginBottom: '4rem' }}>
-        <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-          <span>📅</span> Próximos Lanzamientos
-        </h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h2 style={{ fontSize: '1.8rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+            <span>📅</span> Próximos Lanzamientos
+          </h2>
+          <Link href="/catalog/upcoming" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'none', fontSize: '1rem' }}>
+            Ver calendario completo →
+          </Link>
+        </div>
         <div style={{
           display: 'flex', gap: '1.5rem', overflowX: 'auto', paddingBottom: '1rem',
           scrollbarWidth: 'none', msOverflowStyle: 'none'

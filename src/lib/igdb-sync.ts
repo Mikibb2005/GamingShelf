@@ -13,6 +13,9 @@ const MAX_GAMES_PER_SYNC = 50;
  */
 export async function syncNewGamesFromIGDB(force = false) {
     try {
+        // Also sync big anticipated games
+        await syncMostAnticipatedGames();
+
         // 1. Check last sync time
         let lastSyncSetting = await prisma.systemSettings.findUnique({
             where: { key: "last_igdb_sync" }
@@ -156,4 +159,62 @@ async function updateLastSyncTime() {
         update: { value: "done", updatedAt: new Date() },
         create: { key: "last_igdb_sync", value: "done" }
     });
+}
+
+/**
+ * Specifically fetches high-profile games that are coming in the future.
+ * Uses hypes and follows to find the "famous" ones.
+ */
+async function syncMostAnticipatedGames() {
+    console.log("[IGDB Sync] Syncing most anticipated games...");
+    const now = Math.floor(Date.now() / 1000);
+
+    const query = `
+        fields name, slug, cover.url, first_release_date, summary, aggregated_rating, hypes, follows,
+               genres.name, platforms.name, involved_companies.company.name, involved_companies.developer, involved_companies.publisher;
+        where (first_release_date > ${now} | first_release_date = null) & category = (0, 8, 9) & cover != null & (hypes > 10 | follows > 20);
+        sort hypes desc;
+        limit 50;
+    `;
+
+    const games = await igdbFetch("games", query);
+    if (!games || !Array.isArray(games)) return;
+
+    for (const g of games) {
+        const developers = g.involved_companies?.filter((c: any) => c.developer).map((c: any) => c.company.name).join(", ") || null;
+        const publishers = g.involved_companies?.filter((c: any) => c.publisher).map((c: any) => c.company.name).join(", ") || null;
+        const platforms = g.platforms?.map((p: any) => p.name) || [];
+        const genres = g.genres?.map((gen: any) => gen.name).join(", ") || null;
+        const coverUrl = g.cover?.url ? (g.cover.url.startsWith("//") ? `https:${g.cover.url.replace("t_thumb", "t_cover_big")}` : g.cover.url.replace("t_thumb", "t_cover_big")) : null;
+
+        await prisma.gameCatalog.upsert({
+            where: { slug: g.slug },
+            update: {
+                title: g.name,
+                coverUrl,
+                description: g.summary,
+                releaseDate: g.first_release_date ? new Date(g.first_release_date * 1000) : null,
+                releaseYear: g.first_release_date ? new Date(g.first_release_date * 1000).getFullYear() : null,
+                developer: developers,
+                publisher: publishers,
+                platforms: JSON.stringify(platforms),
+                genres,
+                igdbId: g.id,
+            },
+            create: {
+                slug: g.slug,
+                title: g.name,
+                titleNormalized: normalizeText(g.name),
+                coverUrl,
+                description: g.summary,
+                releaseDate: g.first_release_date ? new Date(g.first_release_date * 1000) : null,
+                releaseYear: g.first_release_date ? new Date(g.first_release_date * 1000).getFullYear() : null,
+                developer: developers,
+                publisher: publishers,
+                platforms: JSON.stringify(platforms),
+                genres,
+                igdbId: g.id,
+            }
+        });
+    }
 }
