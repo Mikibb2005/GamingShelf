@@ -29,7 +29,6 @@ export default function RootLayout({
         <html lang="es">
             <body className={inter.className}>
                 <Providers>
-                    <AutoSync />
                     <div className="app-shell">
                         <Navigation />
                         <main className="main-content">

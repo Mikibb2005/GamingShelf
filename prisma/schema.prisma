@@ -70,6 +70,12 @@ model GameCatalog {
   platforms String? // JSON array of platform names
   category  Int?     // IGDB Category (0=Main, 5=Mod/Hackrom, 10=Prototype, etc)
   isFanGame Boolean @default(false)
+  
+  // Relations & Collections
+  sagaId       Int?
+  sagaName     String?
+  director     String?
+  parentGameId Int?   // For versions/remakes/dlcs linking (IGDB version_parent or parent_game)
 
   // Ratings
   metacritic      Int? // Legacy/IGDB rating

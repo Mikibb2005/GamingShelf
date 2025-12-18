@@ -11,6 +11,13 @@ export async function GET(request: Request) {
     const platform = searchParams.get("platform"); // Platform filter
     const upcomingOnly = searchParams.get("upcoming") === "true";
     const includeFanGames = searchParams.get("includeFanGames") === "true";
+
+    // Advanced filters
+    const sagaId = searchParams.get("sagaId");
+    const developerFilter = searchParams.get("developer");
+    const publisherFilter = searchParams.get("publisher");
+    const parentGameId = searchParams.get("parentId");
+
     const pageSize = 50;
 
     // Build where clause
@@ -25,6 +32,15 @@ export async function GET(request: Request) {
     if (!includeFanGames) {
         where.isFanGame = false;
     }
+
+    // Relation filters
+    if (sagaId) where.sagaId = parseInt(sagaId);
+    if (developerFilter) where.developer = { contains: developerFilter };
+    if (publisherFilter) where.publisher = { contains: publisherFilter };
+    if (parentGameId) where.OR = [
+        { parentGameId: parseInt(parentGameId) },
+        { igdbId: parseInt(parentGameId) } // Include the parent itself
+    ];
 
     if (upcomingOnly) {
         const now = new Date();

@@ -45,6 +45,7 @@ export async function syncNewGamesFromIGDB(force = false) {
         // categories: 0=Main, 8=Remake, 9=Remaster
         const query = `
             fields name, slug, cover.url, first_release_date, summary, aggregated_rating, category,
+                   collection.name, collection.id, version_parent,
                    genres.name, platforms.name, involved_companies.company.name, involved_companies.developer, involved_companies.publisher;
             where first_release_date > ${startTime} & category = (0, 5, 8, 9, 10, 15) & cover != null;
             sort first_release_date desc;
@@ -101,7 +102,14 @@ export async function syncNewGamesFromIGDB(force = false) {
             const titleNormalized = normalizeText(g.name);
 
             // Heuristic for Fan Games / Hackroms
-            const fanKeywords = ['fan game', 'hackrom', 'hack rom', 'hack edition', 'v0.', 'prototype'];
+            const fanKeywords = [
+                'fan game', 'hackrom', 'hack rom', 'hack edition', 'v0.', 'prototype',
+                'unbound', 'infinite fusion', 'insurgence', 'reborn', 'rejuvenation',
+                'radical red', 'xenoverse', 'ash gray', 'crystal clear', 'empyrean',
+                'light platinum', 'glazed', 'uranium', 'prism', 'sage', 'solar light',
+                'lunar dark', 'phoenix rising', 'flux', 'emerald kaizo', 'storm silver',
+                'sacred gold', 'blaze black', 'volt white', 'clover', 'rocket edition'
+            ];
             const isFanGame = g.category === 5 || g.category === 10 || g.category === 15 ||
                 fanKeywords.some(kw => g.name.toLowerCase().includes(kw));
 
@@ -126,7 +134,10 @@ export async function syncNewGamesFromIGDB(force = false) {
                     opencriticScore: ocData?.score || null,
                     igdbId: g.id,
                     category: g.category || 0,
-                    isFanGame: isFanGame
+                    isFanGame: isFanGame,
+                    sagaId: g.collection?.id || null,
+                    sagaName: g.collection?.name || null,
+                    parentGameId: g.version_parent || null
                 },
                 create: {
                     slug: g.slug,
@@ -145,7 +156,10 @@ export async function syncNewGamesFromIGDB(force = false) {
                     opencriticScore: ocData?.score || null,
                     igdbId: g.id,
                     category: g.category || 0,
-                    isFanGame: isFanGame
+                    isFanGame: isFanGame,
+                    sagaId: g.collection?.id || null,
+                    sagaName: g.collection?.name || null,
+                    parentGameId: g.version_parent || null
                 }
             });
             addedCount++;
@@ -180,6 +194,7 @@ async function syncMostAnticipatedGames() {
 
     const query = `
         fields name, slug, cover.url, first_release_date, summary, aggregated_rating, hypes, follows, category,
+               collection.name, collection.id, version_parent,
                genres.name, platforms.name, involved_companies.company.name, involved_companies.developer, involved_companies.publisher;
         where (first_release_date > ${now} | first_release_date = null) & (hypes > 30 | follows > 50) & category = (0, 5, 8, 9, 10, 15) & cover != null;
         sort hypes desc;
@@ -219,7 +234,10 @@ async function syncMostAnticipatedGames() {
                 genres,
                 igdbId: g.id,
                 category: g.category || 0,
-                isFanGame: isFanGame
+                isFanGame: isFanGame,
+                sagaId: g.collection?.id || null,
+                sagaName: g.collection?.name || null,
+                parentGameId: g.version_parent || null
             },
             create: {
                 slug: g.slug,
@@ -235,7 +253,10 @@ async function syncMostAnticipatedGames() {
                 genres,
                 igdbId: g.id,
                 category: g.category || 0,
-                isFanGame: isFanGame
+                isFanGame: isFanGame,
+                sagaId: g.collection?.id || null,
+                sagaName: g.collection?.name || null,
+                parentGameId: g.version_parent || null
             }
         });
     }

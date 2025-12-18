@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 
 interface GameDetails {
     id: string;
@@ -11,11 +12,21 @@ interface GameDetails {
     description: string | null;
     developer: string | null;
     publisher: string | null;
+    director: string | null;
     releaseYear: number | null;
     metacriticScore: number | null;
     genres: string | null;
     platforms: string[];
     screenshots: string[];
+    sagaId: number | null;
+    sagaName: string | null;
+    sagaGames: any[];
+    versions: any[];
+    inLibrary: boolean;
+    userGameId: string | null;
+    userGameStatus: string | null;
+    userGameRating: number | null;
+    reviews: any[];
 }
 
 interface Props {
@@ -29,17 +40,14 @@ export default function CatalogGameDetail({ id, onClose, onCloseRedirect }: Prop
 
     const [game, setGame] = useState<GameDetails | null>(null);
     const [loading, setLoading] = useState(true);
-
-    // Add Modal State
     const [showAddModal, setShowAddModal] = useState(false);
     const [selectedPlatform, setSelectedPlatform] = useState("");
-    const [ownership, setOwnership] = useState("owned"); // wishlist | owned
+    const [ownership, setOwnership] = useState("owned");
     const [status, setStatus] = useState("unplayed");
     const [selectedImage, setSelectedImage] = useState<number | null>(null);
     const [adding, setAdding] = useState(false);
 
     useEffect(() => {
-        // Prevent body scroll and handle layout shift
         const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
         document.body.style.overflow = "hidden";
         document.documentElement.style.overflow = "hidden";
@@ -53,26 +61,14 @@ export default function CatalogGameDetail({ id, onClose, onCloseRedirect }: Prop
     }, []);
 
     useEffect(() => {
-        if (selectedImage === null) return;
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === "Escape") setSelectedImage(null);
-            if (e.key === "ArrowLeft") setSelectedImage(prev => (prev !== null && prev > 0 ? prev - 1 : prev!));
-            if (e.key === "ArrowRight") setSelectedImage(prev => (prev !== null && game && prev < game.screenshots.length - 1 ? prev + 1 : prev!));
-        };
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [selectedImage, game]);
-
-    useEffect(() => {
         async function load() {
+            setLoading(true);
             try {
                 const res = await fetch(`/api/catalog/${id}`);
                 if (res.ok) {
                     const data = await res.json();
-                    setGame({
-                        ...data,
-                        metacriticScore: data.opencriticScore && data.opencriticScore > 0 ? data.opencriticScore : null
-                    });
+                    setGame(data);
+                    if (data.platforms?.length > 0) setSelectedPlatform(data.platforms[0]);
                 }
             } catch (e) {
                 console.error(e);
@@ -93,7 +89,6 @@ export default function CatalogGameDetail({ id, onClose, onCloseRedirect }: Prop
 
     const handleAddGame = async () => {
         if (!game || !selectedPlatform) return;
-
         setAdding(true);
         try {
             const res = await fetch("/api/games", {
@@ -116,267 +111,267 @@ export default function CatalogGameDetail({ id, onClose, onCloseRedirect }: Prop
                 const newGame = await res.json();
                 handleClose();
                 router.push(`/game/${newGame.id}`);
-            } else {
-                alert("Error al añadir juego");
             }
         } catch (e) {
-            alert("Error de conexión");
+            console.error(e);
         } finally {
             setAdding(false);
         }
     };
 
-    const handleBackdropClick = (e: React.MouseEvent) => {
-        if (e.target === e.currentTarget) {
-            handleClose();
-        }
-    };
+    if (loading) return (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="loader">Cargando detalles...</div>
+        </div>
+    );
+
+    if (!game) return null;
+
+    const mainScreenshot = game.screenshots[0] || game.coverUrl;
 
     return (
-        <>
-            {/* Main Detail Modal */}
-            <div
-                style={{
-                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(0,0,0,0.85)', zIndex: 900,
-                    display: 'flex', justifyContent: 'center', alignItems: 'flex-start',
-                    overflowY: 'auto', padding: '2rem 1rem',
-                    backdropFilter: 'blur(5px)',
-                    overscrollBehavior: 'contain'
-                }}
-                onClick={handleBackdropClick}
-            >
-                <div style={{
-                    background: 'var(--bg-app)',
-                    width: '100%', maxWidth: '1000px',
-                    borderRadius: 'var(--radius-lg)',
-                    border: '1px solid var(--border)',
-                    position: 'relative',
-                    minHeight: '500px',
-                    marginTop: '2rem',
-                    marginBottom: '2rem',
-                    boxShadow: '0 0 50px rgba(0,0,0,0.5)'
-                }} onClick={e => e.stopPropagation()}>
+        <div
+            style={{
+                position: 'fixed', inset: 0, zIndex: 900,
+                display: 'flex', justifyContent: 'center',
+                overflowY: 'auto', padding: '2rem 1rem',
+                backdropFilter: 'blur(10px)',
+                background: 'rgba(0,0,0,0.4)'
+            }}
+            onClick={(e) => e.target === e.currentTarget && handleClose()}
+        >
+            {/* Background Blur Hero */}
+            <div style={{
+                position: 'fixed', inset: 0, zIndex: -1,
+                backgroundImage: `url(${mainScreenshot})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                filter: 'blur(40px) brightness(0.3)',
+                transform: 'scale(1.1)'
+            }} />
 
-                    <button
-                        onClick={handleClose}
-                        style={{
-                            position: 'absolute', top: '1rem', right: '1rem',
-                            zIndex: 10,
-                            background: 'rgba(0,0,0,0.5)',
-                            color: 'white',
-                            width: '32px', height: '32px',
-                            borderRadius: '50%',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '1.2rem'
-                        }}
-                    >
-                        ✕
-                    </button>
+            <div className="glass-panel" style={{
+                width: '100%', maxWidth: '1100px',
+                borderRadius: 'var(--radius-xl)',
+                overflow: 'hidden',
+                background: 'rgba(20, 20, 25, 0.85)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                height: 'fit-content',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)'
+            }}>
+                {/* Hero section */}
+                <div style={{ position: 'relative', height: '350px' }}>
+                    <Image
+                        src={mainScreenshot || ""}
+                        alt="Hero" fill
+                        style={{ objectFit: 'cover' }}
+                        priority
+                    />
+                    <div style={{
+                        position: 'absolute', inset: 0,
+                        background: 'linear-gradient(to bottom, transparent, rgba(20, 20, 25, 1))'
+                    }} />
 
-                    {loading ? (
-                        <div style={{ padding: '4rem', textAlign: 'center' }}>Cargando ficha...</div>
-                    ) : !game ? (
-                        <div style={{ padding: '4rem', textAlign: 'center' }}>Juego no encontrado</div>
-                    ) : (
-                        <>
+                    <button onClick={handleClose} style={{
+                        position: 'absolute', top: '1.5rem', right: '1.5rem',
+                        background: 'rgba(0,0,0,0.5)', border: 'none', color: 'white',
+                        width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer'
+                    }}>✕</button>
+                </div>
+
+                <div style={{ padding: '0 2rem 3rem', marginTop: '-120px', position: 'relative', zIndex: 2 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr 280px', gap: '2.5rem', alignItems: 'flex-end' }}>
+                        {/* Cover Column */}
+                        <div style={{ flexShrink: 0 }}>
                             <div style={{
-                                position: 'relative',
-                                height: '250px',
-                                overflow: 'hidden',
-                                borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
+                                width: '220px', height: '310px', position: 'relative',
+                                borderRadius: 'var(--radius-lg)', overflow: 'hidden',
+                                boxShadow: '0 20px 30px rgba(0,0,0,0.5)',
+                                border: '1px solid rgba(255,255,255,0.1)'
                             }}>
-                                <Image
-                                    src={game.screenshots[0] || game.coverUrl || ""}
-                                    alt="Hero"
-                                    fill
-                                    priority
-                                    style={{ objectFit: 'cover' }}
-                                    className="skeleton"
-                                />
-                                <div style={{
-                                    position: 'absolute',
-                                    inset: 0,
-                                    background: 'linear-gradient(to bottom, rgba(0,0,0,0.3), var(--bg-app))',
-                                    zIndex: 1
-                                }}></div>
+                                <Image src={game.coverUrl || ""} alt="Cover" fill style={{ objectFit: 'cover' }} />
                             </div>
+                        </div>
 
-                            <div style={{ padding: '0 1.5rem 1.5rem', marginTop: '-60px', position: 'relative' }}>
-                                <div style={{
-                                    display: 'flex',
-                                    gap: '1.5rem',
-                                    alignItems: 'flex-start',
-                                    flexDirection: 'row',
-                                    flexWrap: 'wrap'
-                                }}>
+                        {/* Center Info */}
+                        <div style={{ paddingBottom: '1rem' }}>
+                            <h1 style={{ fontSize: '3rem', fontWeight: 900, color: 'white', marginBottom: '0.5rem', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
+                                {game.title}
+                            </h1>
+                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', fontSize: '1.1rem', color: 'rgba(255,255,255,0.7)' }}>
+                                <span>{game.releaseYear}</span>
+                                <span>•</span>
+                                <span className="hover-link" style={{ color: 'var(--primary)', cursor: 'pointer' }}>{game.developer}</span>
+                                {game.metacriticScore && (
+                                    <span style={{
+                                        background: game.metacriticScore >= 80 ? '#4caf50' : game.metacriticScore >= 60 ? '#ffb300' : '#f44336',
+                                        color: 'white', padding: '2px 8px', borderRadius: '4px', fontWeight: 800
+                                    }}>
+                                        {game.metacriticScore}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
 
-                                    <div style={{ flexShrink: 0, margin: '0 auto', position: 'relative', width: '180px', height: '260px' }}>
-                                        <Image
-                                            src={game.coverUrl || "/placeholder.jpg"}
-                                            alt="Cover"
-                                            fill
-                                            sizes="180px"
-                                            style={{
-                                                objectFit: 'cover',
-                                                borderRadius: 'var(--radius-md)',
-                                                boxShadow: 'var(--shadow-lg)',
-                                                border: '4px solid var(--bg-card)'
-                                            }}
-                                            className="skeleton"
-                                        />
+                        {/* Actions Sidebar */}
+                        <div style={{
+                            background: 'rgba(255,255,255,0.05)',
+                            padding: '1.5rem', borderRadius: 'var(--radius-lg)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            display: 'flex', flexDirection: 'column', gap: '1rem'
+                        }}>
+                            {game.inLibrary ? (
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ fontSize: '0.9rem', color: 'var(--primary)', fontWeight: 600, marginBottom: '0.5rem' }}>EN TU BIBLIOTECA</div>
+                                    <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>{game.userGameStatus?.toUpperCase()}</div>
+                                    <Link href={`/game/${game.userGameId}`} className="btn-primary" style={{ display: 'block', marginTop: '1rem', textDecoration: 'none' }}>
+                                        Ir a mi Página
+                                    </Link>
+                                </div>
+                            ) : (
+                                <button onClick={() => setShowAddModal(true)} className="btn-primary" style={{ width: '100%', padding: '1rem' }}>
+                                    + Añadir a Colección
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Main Content Sections */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: '3rem', marginTop: '3rem' }}>
+                        <div>
+                            <section style={{ marginBottom: '3rem' }}>
+                                <h3 style={{ color: 'white', fontSize: '1.4rem', marginBottom: '1rem' }}>Sobre el juego</h3>
+                                <p style={{ fontSize: '1.1rem', lineHeight: 1.8, color: 'rgba(255,255,255,0.8)', textAlign: 'justify' }}>
+                                    {game.description}
+                                </p>
+                            </section>
+
+                            {/* Versions / Remakes */}
+                            {game.versions?.length > 0 && (
+                                <section style={{ marginBottom: '3rem' }}>
+                                    <h3 style={{ color: 'white', fontSize: '1.2rem', marginBottom: '1rem', opacity: 0.8 }}>Otras Versiones y Ediciones</h3>
+                                    <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '1rem' }}>
+                                        {game.versions.map(v => (
+                                            <Link key={v.id} href={`/catalog?gameId=${v.id}`} className="hover-scale" style={{ width: '120px', flexShrink: 0, textDecoration: 'none' }}>
+                                                <div style={{ aspectRatio: '3/4', position: 'relative', borderRadius: '8px', overflow: 'hidden', marginBottom: '0.5rem' }}>
+                                                    <Image src={v.coverUrl || ""} alt={v.title} fill style={{ objectFit: 'cover' }} />
+                                                </div>
+                                                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.title}</div>
+                                                <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>{v.releaseYear}</div>
+                                            </Link>
+                                        ))}
                                     </div>
+                                </section>
+                            )}
 
-                                    <div style={{ flex: 1, minWidth: '260px' }}>
-                                        <h1 style={{ fontSize: '2.2rem', fontWeight: 800, marginBottom: '0.5rem', textAlign: 'inherit' }}>{game.title}</h1>
-                                        <div style={{ display: 'flex', gap: '1rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                                            <span>{game.releaseYear}</span>
-                                            <span>•</span>
-                                            <span style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{game.developer}</span>
-                                            <span style={{
-                                                background: game.metacriticScore
-                                                    ? (game.metacriticScore >= 75 ? '#66cc33' : game.metacriticScore >= 50 ? '#ffcc33' : '#ff3333')
-                                                    : '#666',
-                                                color: game.metacriticScore ? 'black' : '#aaa',
-                                                fontWeight: 700, padding: '2px 8px', borderRadius: '4px'
-                                            }}>
-                                                {game.metacriticScore || '-'}
-                                            </span>
+                            {/* Screenshots */}
+                            <section style={{ marginBottom: '3rem' }}>
+                                <h3 style={{ color: 'white', fontSize: '1.2rem', marginBottom: '1.2rem', opacity: 0.8 }}>Galería</h3>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                                    {game.screenshots.map((s, i) => (
+                                        <div key={i} style={{ borderRadius: '8px', overflow: 'hidden', cursor: 'pointer' }} onClick={() => setSelectedImage(i)}>
+                                            <img src={s} alt="screenshot" style={{ width: '100%', height: '150px', objectFit: 'cover' }} className="hover-scale" />
                                         </div>
+                                    ))}
+                                </div>
+                            </section>
+                        </div>
 
-                                        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-                                            <button
-                                                onClick={() => setShowAddModal(true)}
-                                                className="btn-primary"
-                                                style={{ fontSize: '1rem', padding: '0.75rem 1.5rem', width: '100%', maxWidth: '300px' }}
-                                            >
-                                                + Añadir a mi Colección
-                                            </button>
+                        {/* Right Column: Metadata & Collections */}
+                        <div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '12px' }}>
+                                    <div style={{ marginBottom: '1rem' }}>
+                                        <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px' }}>Desarrollador</div>
+                                        <div style={{ color: 'var(--primary)', fontWeight: 600 }}>{game.developer}</div>
+                                    </div>
+                                    <div style={{ marginBottom: '1rem' }}>
+                                        <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px' }}>Editor</div>
+                                        <div style={{ color: 'white' }}>{game.publisher}</div>
+                                    </div>
+                                    {game.director && (
+                                        <div style={{ marginBottom: '1rem' }}>
+                                            <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px' }}>Director</div>
+                                            <div style={{ color: 'white' }}>{game.director}</div>
                                         </div>
-
-                                        {game.description && (
-                                            <div style={{ lineHeight: 1.6, maxWidth: '800px', background: 'var(--bg-card)', padding: '1.2rem', borderRadius: 'var(--radius-md)', fontSize: '0.95rem' }}>
-                                                <h3 style={{ marginBottom: '0.75rem', fontSize: '1.1rem' }}>Sinopsis</h3>
-                                                <p>{game.description}</p>
-                                            </div>
-                                        )}
-
-                                        <div style={{ marginTop: '1.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                                            <div style={{ marginBottom: '0.4rem' }}><strong>Generos:</strong> {game.genres}</div>
-                                            <div><strong>Plataformas:</strong> {game.platforms.join(", ")}</div>
-                                        </div>
+                                    )}
+                                    <div style={{ marginBottom: '1rem' }}>
+                                        <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px' }}>Géneros</div>
+                                        <div style={{ color: 'white', fontSize: '0.9rem' }}>{game.genres}</div>
                                     </div>
                                 </div>
 
-                                {game.screenshots.length > 0 && (
-                                    <div style={{ marginTop: '3rem' }}>
-                                        <h2 style={{ fontSize: '1.3rem', marginBottom: '1.2rem' }}>Galería</h2>
-                                        <div className="game-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}>
-                                            {game.screenshots.map((s, i) => (
-                                                <img
-                                                    key={i}
-                                                    src={s}
-                                                    alt=""
-                                                    style={{ width: '100%', borderRadius: 'var(--radius-sm)', cursor: 'pointer', transition: 'transform 0.2s' }}
-                                                    onClick={() => setSelectedImage(i)}
-                                                />
+                                {/* Saga Collection */}
+                                {game.sagaId && (
+                                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                            <h4 style={{ color: 'white', margin: 0 }}>Saga {game.sagaName}</h4>
+                                            <Link href={`/catalog?sagaId=${game.sagaId}`} style={{ fontSize: '0.8rem', color: 'var(--primary)', textDecoration: 'none' }}>Ver todo</Link>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                            {game.sagaGames.map(sg => (
+                                                <Link key={sg.id} href={`/catalog?gameId=${sg.id}`} style={{ display: 'flex', gap: '0.75rem', textDecoration: 'none', alignItems: 'center' }}>
+                                                    <div style={{ width: '40px', height: '55px', position: 'relative', borderRadius: '4px', overflow: 'hidden' }}>
+                                                        <Image src={sg.coverUrl || ""} alt={sg.title} fill style={{ objectFit: 'cover' }} />
+                                                    </div>
+                                                    <div style={{ flex: 1, fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>{sg.title}</div>
+                                                </Link>
                                             ))}
                                         </div>
                                     </div>
                                 )}
+
+                                {/* User Reviews */}
+                                <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem' }}>
+                                    <h4 style={{ color: 'white', marginBottom: '1rem' }}>Reseñas de la Comunidad</h4>
+                                    {game.reviews?.length > 0 ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                            {game.reviews.map(r => (
+                                                <div key={r.id} style={{ background: 'rgba(255,255,255,0.05)', padding: '0.75rem', borderRadius: '8px' }}>
+                                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                                        <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'var(--primary)', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                            {r.user.username[0]}
+                                                        </div>
+                                                        <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{r.user.username}</span>
+                                                    </div>
+                                                    <p style={{ fontSize: '0.85rem', margin: 0, color: 'rgba(255,255,255,0.6)', fontStyle: 'italic' }}>"{r.content.substring(0, 100)}..."</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.9rem' }}>Nadie ha reseñando este juego aún.</div>
+                                    )}
+                                </div>
                             </div>
-                        </>
-                    )}
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {/* Lightbox Modal (Outside main container to avoid backdrop-filter issues) */}
-            {selectedImage !== null && game && (
-                <div
-                    style={{
-                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                        background: 'rgba(0,0,0,0.95)', zIndex: 2000,
-                        display: 'flex', justifyContent: 'center', alignItems: 'center',
-                        backdropFilter: 'none'
-                    }}
-                    onClick={() => setSelectedImage(null)}
-                >
-                    <button
-                        onClick={() => setSelectedImage(null)}
-                        style={{
-                            position: 'absolute', top: '2rem', right: '2rem', color: 'white', fontSize: '2rem', zIndex: 2010
-                        }}
-                    >
-                        ✕
-                    </button>
-
-                    {selectedImage > 0 && (
-                        <button
-                            onClick={(e) => { e.stopPropagation(); setSelectedImage(selectedImage - 1); }}
-                            style={{
-                                position: 'absolute', left: '2rem', color: 'white', fontSize: '3rem', zIndex: 2010,
-                                background: 'rgba(0,0,0,0.5)', borderRadius: '50%', width: '60px', height: '60px'
-                            }}
-                        >
-                            ‹
-                        </button>
-                    )}
-
-                    <img
-                        src={game.screenshots[selectedImage]}
-                        alt=""
-                        style={{
-                            maxHeight: '90vh', maxWidth: '90vw', objectFit: 'contain',
-                            borderRadius: 'var(--radius-sm)',
-                            boxShadow: '0 0 50px rgba(0,0,0,0.8)'
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                    />
-
-                    {selectedImage < game.screenshots.length - 1 && (
-                        <button
-                            onClick={(e) => { e.stopPropagation(); setSelectedImage(selectedImage + 1); }}
-                            style={{
-                                position: 'absolute', right: '2rem', color: 'white', fontSize: '3rem', zIndex: 2010,
-                                background: 'rgba(0,0,0,0.5)', borderRadius: '50%', width: '60px', height: '60px'
-                            }}
-                        >
-                            ›
-                        </button>
-                    )}
-
-                    <div style={{
-                        position: 'absolute', bottom: '2rem', color: 'var(--text-secondary)', fontSize: '0.9rem'
-                    }}>
-                        {selectedImage + 1} / {game.screenshots.length}
-                    </div>
+            {/* Lightbox */}
+            {selectedImage !== null && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setSelectedImage(null)}>
+                    <img src={game.screenshots[selectedImage]} style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: '12px' }} />
                 </div>
             )}
 
             {/* Add Modal */}
-            {showAddModal && game && (
-                <div style={{
-                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(0,0,0,0.8)', zIndex: 1000,
-                    display: 'flex', justifyContent: 'center', alignItems: 'center'
-                }} onClick={(e) => { e.stopPropagation(); }}>
-                    <div style={{ background: 'var(--bg-main)', padding: '2rem', borderRadius: 'var(--radius-md)', width: '90%', maxWidth: '500px', border: '1px solid var(--border)' }}>
-                        <h2 style={{ marginBottom: '1.5rem' }}>Añadir Juego</h2>
-
+            {showAddModal && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowAddModal(false)}>
+                    <div className="glass-panel" style={{ width: '100%', maxWidth: '450px', padding: '2rem', borderRadius: '20px' }} onClick={e => e.stopPropagation()}>
+                        <h2 style={{ marginBottom: '1.5rem' }}>Añadir a mi Colección</h2>
                         <div style={{ marginBottom: '1.5rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Plataforma</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', opacity: 0.7 }}>Plataforma</label>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                                 {game.platforms.map(p => (
                                     <button
                                         key={p}
                                         onClick={() => setSelectedPlatform(p)}
                                         style={{
-                                            padding: '0.5rem 1rem',
-                                            borderRadius: 'var(--radius-sm)',
+                                            padding: '0.5rem 1rem', borderRadius: '8px',
                                             border: selectedPlatform === p ? '2px solid var(--primary)' : '1px solid var(--border)',
                                             background: selectedPlatform === p ? 'var(--primary)' : 'transparent',
-                                            color: selectedPlatform === p ? 'white' : 'var(--text-main)',
-                                            cursor: 'pointer'
+                                            color: 'white', cursor: 'pointer'
                                         }}
                                     >
                                         {p}
@@ -386,66 +381,25 @@ export default function CatalogGameDetail({ id, onClose, onCloseRedirect }: Prop
                         </div>
 
                         <div style={{ marginBottom: '1.5rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Tipo</label>
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <button
-                                    onClick={() => setOwnership("wishlist")}
-                                    style={{
-                                        flex: 1,
-                                        padding: '0.75rem',
-                                        borderRadius: 'var(--radius-sm)',
-                                        border: ownership === "wishlist" ? '2px solid var(--primary)' : '1px solid var(--border)',
-                                        background: ownership === "wishlist" ? 'var(--primary)' : 'transparent',
-                                        color: ownership === "wishlist" ? 'white' : 'var(--text-main)',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    ❤️ WishList
-                                </button>
-                                <button
-                                    onClick={() => setOwnership("owned")}
-                                    style={{
-                                        flex: 1,
-                                        padding: '0.75rem',
-                                        borderRadius: 'var(--radius-sm)',
-                                        border: ownership === "owned" ? '2px solid var(--primary)' : '1px solid var(--border)',
-                                        background: ownership === "owned" ? 'var(--primary)' : 'transparent',
-                                        color: ownership === "owned" ? 'white' : 'var(--text-main)',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    ✅ Lo Tengo
-                                </button>
-                            </div>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', opacity: 0.7 }}>Estado</label>
+                            <select
+                                value={status}
+                                onChange={e => setStatus(e.target.value)}
+                                style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--bg-card)', color: 'white', border: '1px solid var(--border)' }}
+                            >
+                                <option value="unplayed">Sin Jugar</option>
+                                <option value="playing">Jugando</option>
+                                <option value="completed">Terminado</option>
+                                <option value="backlog">En Backlog</option>
+                            </select>
                         </div>
 
-                        {ownership === "owned" && (
-                            <div style={{ marginBottom: '2rem' }}>
-                                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Estado</label>
-                                <select
-                                    value={status}
-                                    onChange={(e) => setStatus(e.target.value)}
-                                    style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius-sm)', background: 'var(--bg-subtle)', color: 'white', border: '1px solid var(--border)' }}
-                                >
-                                    <option value="unplayed">Sin Jugar</option>
-                                    <option value="playing">Jugando</option>
-                                    <option value="paused">Pausado</option>
-                                    <option value="completed">Terminado</option>
-                                    <option value="dropped">Abandonado</option>
-                                    <option value="platinum">Platinando (100%)</option>
-                                </select>
-                            </div>
-                        )}
-
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                            <button onClick={() => setShowAddModal(false)} className="btn-secondary">Cancelar</button>
-                            <button onClick={handleAddGame} className="btn-primary" disabled={!selectedPlatform || adding}>
-                                {adding ? 'Guardando...' : 'Guardar en Colección'}
-                            </button>
-                        </div>
+                        <button onClick={handleAddGame} disabled={adding} className="btn-primary" style={{ width: '100%', padding: '1rem' }}>
+                            {adding ? 'Añadiendo...' : 'Confirmar'}
+                        </button>
                     </div>
                 </div>
             )}
-        </>
+        </div>
     );
 }

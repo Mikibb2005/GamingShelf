@@ -3,32 +3,56 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useSearchParams, useRouter } from "next/navigation";
 import CatalogGameDetail from "@/components/CatalogGameDetail";
 
 export default function CatalogPage() {
+    const searchParams = useSearchParams();
+    const router = useRouter();
+
     const [games, setGames] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const [search, setSearch] = useState("");
-    const [debouncedSearch, setDebouncedSearch] = useState("");
-    const [sortBy, setSortBy] = useState("relevance");
-    const [selectedPlatform, setSelectedPlatform] = useState("All");
-    const [includeFanGames, setIncludeFanGames] = useState(false);
-    const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
 
-    // Debounce search
-    useEffect(() => {
-        const timer = setTimeout(() => setDebouncedSearch(search), 500);
-        return () => clearTimeout(timer);
-    }, [search]);
+    // Get state from URL
+    const page = parseInt(searchParams.get("page") || "1");
+    const search = searchParams.get("q") || "";
+    const sortBy = searchParams.get("sort") || "relevance";
+    const selectedPlatform = searchParams.get("platform") || "All";
+    const includeFanGames = searchParams.get("includeFanGames") === "true";
+    const selectedGameId = searchParams.get("gameId");
+
+    // Relation Filters
+    const sagaId = searchParams.get("sagaId");
+    const developer = searchParams.get("developer");
+    const publisher = searchParams.get("publisher");
+
+    const updateQuery = (newParams: Record<string, string | null>) => {
+        const params = new URLSearchParams(searchParams.toString());
+        Object.entries(newParams).forEach(([key, value]) => {
+            if (value === null) params.delete(key);
+            else params.set(key, value);
+        });
+        router.push(`/catalog?${params.toString()}`);
+    };
 
     // Fetch games
     useEffect(() => {
         async function load() {
             setLoading(true);
             try {
-                const res = await fetch(`/api/catalog/search?page=${page}&q=${encodeURIComponent(debouncedSearch)}&sort=${sortBy}&platform=${encodeURIComponent(selectedPlatform)}&includeFanGames=${includeFanGames}`);
+                const query = new URLSearchParams({
+                    page: page.toString(),
+                    q: search,
+                    sort: sortBy,
+                    platform: selectedPlatform,
+                    includeFanGames: includeFanGames.toString()
+                });
+                if (sagaId) query.set("sagaId", sagaId);
+                if (developer) query.set("developer", developer);
+                if (publisher) query.set("publisher", publisher);
+
+                const res = await fetch(`/api/catalog/search?${query.toString()}`);
                 if (res.ok) {
                     const data = await res.json();
                     setGames(data.results);
@@ -41,7 +65,7 @@ export default function CatalogPage() {
             }
         }
         load();
-    }, [page, debouncedSearch, sortBy, selectedPlatform, includeFanGames]);
+    }, [page, search, sortBy, selectedPlatform, includeFanGames, sagaId, developer, publisher]);
 
     return (
         <div className="container" style={{ padding: '2rem 1rem' }}>
@@ -60,7 +84,7 @@ export default function CatalogPage() {
                     type="text"
                     placeholder="Buscar juego..."
                     value={search}
-                    onChange={(e) => { setSearch(e.target.value); setPage(1); }} // Reset page on search
+                    onChange={(e) => updateQuery({ q: e.target.value, page: "1" })}
                     style={{
                         width: '100%',
                         padding: '1rem',
@@ -76,10 +100,16 @@ export default function CatalogPage() {
 
             {/* Filters Row */}
             <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                {(sagaId || developer || publisher) && (
+                    <button onClick={() => updateQuery({ sagaId: null, developer: null, publisher: null, page: "1" })} style={{ marginRight: 'auto' }} className="btn-secondary">
+                        ✕ Limpiar Filtros Especiales
+                    </button>
+                )}
+
                 {/* Platform Filter */}
                 <select
                     value={selectedPlatform}
-                    onChange={(e) => { setSelectedPlatform(e.target.value); setPage(1); }}
+                    onChange={(e) => updateQuery({ platform: e.target.value, page: "1" })}
                     style={{
                         padding: '0.5rem 1rem',
                         borderRadius: 'var(--radius-sm)',
@@ -97,27 +127,11 @@ export default function CatalogPage() {
                     <option value="Switch">Nintendo Switch</option>
                     <option value="Xbox Series X">Xbox Series X</option>
                     <option value="Xbox One">Xbox One</option>
-                    <option value="Wii U">Wii U</option>
-                    <option value="3DS">3DS</option>
-                    <option value="PlayStation 3">PlayStation 3</option>
-                    <option value="Xbox 360">Xbox 360</option>
-                    <option value="Wii">Wii</option>
-                    <option value="DS">DS</option>
-                    <option value="PlayStation 2">PlayStation 2</option>
-                    <option value="GameCube">GameCube</option>
-                    <option value="Xbox">Xbox</option>
-                    <option value="Game Boy Advance">Game Boy Advance</option>
-                    <option value="PlayStation">PlayStation</option>
-                    <option value="Nintendo 64">Nintendo 64</option>
-                    <option value="SNES">SNES</option>
-                    <option value="NES">NES</option>
-                    <option value="Genesis">Genesis / Mega Drive</option>
                 </select>
 
-                {/* Sort Control */}
                 <select
                     value={sortBy}
-                    onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
+                    onChange={(e) => updateQuery({ sort: e.target.value, page: "1" })}
                     style={{
                         padding: '0.5rem 1rem',
                         borderRadius: 'var(--radius-sm)',
@@ -133,7 +147,8 @@ export default function CatalogPage() {
                     <option value="rating">Nota (Metacritic)</option>
                 </select>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', background: 'var(--bg-subtle)', padding: '0.4rem 0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} onClick={() => { setIncludeFanGames(!includeFanGames); setPage(1); }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', background: 'var(--bg-subtle)', padding: '0.4rem 0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}
+                    onClick={() => updateQuery({ includeFanGames: (!includeFanGames).toString(), page: "1" })}>
                     <input type="checkbox" checked={includeFanGames} readOnly style={{ cursor: 'pointer' }} />
                     <span style={{ fontSize: '0.9rem', color: 'var(--text-main)', userSelect: 'none' }}>Mostrar Fan Games / Hacks</span>
                 </div>
@@ -150,13 +165,16 @@ export default function CatalogPage() {
                 </div>
             ) : (
                 <>
+                    {sagaId && <div style={{ marginBottom: '1rem', fontSize: '1.2rem', fontWeight: 600 }}>Mostrando juegos de la Saga</div>}
+                    {developer && <div style={{ marginBottom: '1rem', fontSize: '1.2rem', fontWeight: 600 }}>Mostrando juegos de {developer}</div>}
+
                     <div className="game-grid">
                         {games.map(game => (
                             <div
                                 key={game.id}
                                 className="card game-card"
                                 style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}
-                                onClick={() => setSelectedGameId(game.id)}
+                                onClick={() => updateQuery({ gameId: game.id })}
                             >
                                 <div style={{
                                     aspectRatio: '3/4',
@@ -174,14 +192,14 @@ export default function CatalogPage() {
                                             className="skeleton"
                                         />
                                     )}
-                                    {game.metacriticScore && (
+                                    {(game.opencriticScore || game.metacriticScore) && (
                                         <div style={{
                                             position: 'absolute', top: 5, right: 5,
-                                            background: game.metacriticScore >= 75 ? '#66cc33' : game.metacriticScore >= 50 ? '#ffcc33' : '#ff3333',
+                                            background: (game.opencriticScore || game.metacriticScore) >= 75 ? '#66cc33' : (game.opencriticScore || game.metacriticScore) >= 50 ? '#ffcc33' : '#ff3333',
                                             color: 'black', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', fontSize: '0.8rem',
                                             zIndex: 1
                                         }}>
-                                            {game.metacriticScore}
+                                            {game.opencriticScore || game.metacriticScore}
                                         </div>
                                     )}
                                 </div>
@@ -198,14 +216,13 @@ export default function CatalogPage() {
                     </div>
 
                     {/* Pagination */}
-                    {/* Pagination */}
                     {totalPages > 1 && (
                         <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: '3rem', flexWrap: 'wrap' }}>
                             <button
                                 className="btn-secondary"
                                 disabled={page <= 1}
                                 onClick={() => {
-                                    setPage(Math.max(1, page - 1));
+                                    updateQuery({ page: (page - 1).toString() });
                                     window.scrollTo({ top: 0, behavior: 'smooth' });
                                 }}
                             >
@@ -214,20 +231,18 @@ export default function CatalogPage() {
 
                             {/* Page Numbers */}
                             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                                // Logic to show sliding window of pages around current page
                                 let p = page;
                                 if (page < 3) p = 1 + i;
                                 else if (page > totalPages - 2) p = totalPages - 4 + i;
                                 else p = page - 2 + i;
-
-                                if (p < 1) p = 1 + i; // fallback for fewer than 5 pages
+                                if (p < 1) p = 1 + i;
                                 if (p > totalPages) return null;
 
                                 return (
                                     <button
                                         key={p}
                                         onClick={() => {
-                                            setPage(p);
+                                            updateQuery({ page: p.toString() });
                                             window.scrollTo({ top: 0, behavior: 'smooth' });
                                         }}
                                         style={{
@@ -249,7 +264,7 @@ export default function CatalogPage() {
                                 className="btn-secondary"
                                 disabled={page >= totalPages}
                                 onClick={() => {
-                                    setPage(Math.min(totalPages, page + 1));
+                                    updateQuery({ page: (page + 1).toString() });
                                     window.scrollTo({ top: 0, behavior: 'smooth' });
                                 }}
                             >
@@ -263,7 +278,7 @@ export default function CatalogPage() {
             {selectedGameId && (
                 <CatalogGameDetail
                     id={selectedGameId}
-                    onClose={() => setSelectedGameId(null)}
+                    onClose={() => updateQuery({ gameId: null })}
                 />
             )}
         </div>
