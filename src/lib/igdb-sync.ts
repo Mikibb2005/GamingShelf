@@ -1,7 +1,8 @@
-
 import { prisma } from "@/lib/prisma";
 import { igdbFetch } from "./igdb";
 import { normalizeText } from "./normalize";
+import { getOpenCriticScore } from "./opencritic";
+
 
 const SYNC_INTERVAL_MS = 48 * 60 * 60 * 1000; // 48 hours
 const MAX_GAMES_PER_SYNC = 50;
@@ -40,7 +41,7 @@ export async function syncNewGamesFromIGDB(force = false) {
         // 3. Fetch from IGDB
         // categories: 0=Main, 8=Remake, 9=Remaster
         const query = `
-            fields name, slug, cover.url, first_release_date, summary, total_rating,
+            fields name, slug, cover.url, first_release_date, summary, aggregated_rating,
                    genres.name, platforms.name, involved_companies.company.name, involved_companies.developer, involved_companies.publisher;
             where first_release_date > ${startTime} & category = (0, 8, 9) & cover != null;
             sort first_release_date desc;
@@ -96,6 +97,9 @@ export async function syncNewGamesFromIGDB(force = false) {
             // Strip accents
             const titleNormalized = normalizeText(g.name);
 
+            // Optional: Get more accurate score from OpenCritic
+            const ocData = await getOpenCriticScore(g.name);
+
             await prisma.gameCatalog.upsert({
                 where: { slug: g.slug },
                 update: {
@@ -109,7 +113,9 @@ export async function syncNewGamesFromIGDB(force = false) {
                     publisher: publishers,
                     platforms: JSON.stringify(platforms),
                     genres,
-                    metacritic: g.total_rating ? Math.round(g.total_rating) : null,
+                    metacritic: ocData?.score || (g.aggregated_rating ? Math.round(g.aggregated_rating) : null),
+                    opencriticId: ocData?.id || null,
+                    opencriticScore: ocData?.score || null,
                     igdbId: g.id,
                 },
                 create: {
@@ -124,7 +130,9 @@ export async function syncNewGamesFromIGDB(force = false) {
                     publisher: publishers,
                     platforms: JSON.stringify(platforms),
                     genres,
-                    metacritic: g.total_rating ? Math.round(g.total_rating) : null,
+                    metacritic: ocData?.score || (g.aggregated_rating ? Math.round(g.aggregated_rating) : null),
+                    opencriticId: ocData?.id || null,
+                    opencriticScore: ocData?.score || null,
                     igdbId: g.id,
                 }
             });
