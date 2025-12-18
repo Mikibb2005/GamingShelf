@@ -28,19 +28,19 @@ export async function GET(request: Request) {
     let orderBy: any = { title: 'asc' };
     if (sort === 'releaseDate') {
         // Sort by full release date (most recent first)
-        orderBy = { releaseDate: 'desc' };
+        orderBy = { releaseDate: { sort: 'desc', nulls: 'last' } };
     } else if (sort === 'rating') {
         // Explicit rating sort
         orderBy = [
-            { opencriticScore: 'desc' },
-            { metacritic: 'desc' }
+            { opencriticScore: { sort: 'desc', nulls: 'last' } },
+            { metacritic: { sort: 'desc', nulls: 'last' } }
         ];
     } else if (sort === 'relevance') {
         // Relevance: High Score (Scraped) > High Score (IGDB) > Recent
         orderBy = [
-            { opencriticScore: 'desc' },
-            { metacritic: 'desc' },
-            { releaseDate: 'desc' }
+            { opencriticScore: { sort: 'desc', nulls: 'last' } },
+            { metacritic: { sort: 'desc', nulls: 'last' } },
+            { releaseDate: { sort: 'desc', nulls: 'last' } }
         ];
     }
 
@@ -75,8 +75,8 @@ export async function GET(request: Request) {
             ...g,
             platforms: g.platforms ? JSON.parse(g.platforms) : [],
             screenshots: g.screenshots ? JSON.parse(g.screenshots) : [],
-            // Use scraped Metacritic score if available
-            metacriticScore: g.opencriticScore && g.opencriticScore > 0 ? g.opencriticScore : null
+            // Use best available score
+            metacriticScore: (g.opencriticScore && g.opencriticScore > 0) ? g.opencriticScore : (g.metacritic || null)
         })),
         total,
         page,
