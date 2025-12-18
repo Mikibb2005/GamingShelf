@@ -42,17 +42,66 @@ export const GET = auth(async function GET(req, context: any) {
             });
         }
 
+        // Fetch extra info in parallel if catalog data found
+        let sagaGames: any[] = [];
+        let versions: any[] = [];
+        let reviews: any[] = [];
+        let screenshots: string[] = [];
+
+        if (catalogData) {
+            screenshots = catalogData.screenshots ? JSON.parse(catalogData.screenshots) : [];
+
+            const [sg, vs, revs] = await Promise.all([
+                catalogData.sagaId ? (prisma.gameCatalog as any).findMany({
+                    where: { sagaId: catalogData.sagaId, id: { not: catalogData.id } },
+                    take: 5,
+                    select: { id: true, title: true, coverUrl: true, releaseYear: true }
+                }) : Promise.resolve([]),
+
+                (prisma.gameCatalog as any).findMany({
+                    where: {
+                        OR: [
+                            { parentGameId: catalogData.igdbId || -1 },
+                            { igdbId: catalogData.parentGameId || -1 }
+                        ],
+                        id: { not: catalogData.id }
+                    },
+                    take: 5,
+                    select: { id: true, title: true, coverUrl: true, releaseYear: true, category: true }
+                }),
+
+                prisma.comment.findMany({
+                    where: { game: { title: game.title } },
+                    take: 3,
+                    include: { user: { select: { username: true } } },
+                    orderBy: { createdAt: 'desc' }
+                })
+            ]);
+            sagaGames = sg;
+            versions = vs.map((v: any) => ({
+                ...v,
+                type: v.category === 8 ? 'Remake' : v.category === 9 ? 'Remaster' : v.category === 11 ? 'Port' : 'Version'
+            }));
+            reviews = revs;
+        }
+
         const responseData = {
             ...game,
             description: catalogData?.description || null,
-            screenshots: catalogData?.screenshots ? JSON.parse(catalogData.screenshots) : [],
+            screenshots,
             backgroundUrl: catalogData?.backgroundUrl || game.backgroundUrl,
-            coverUrl: catalogData?.coverUrl || game.coverUrl, // Use catalog cover if available
+            coverUrl: catalogData?.coverUrl || game.coverUrl,
             developer: catalogData?.developer || null,
             publisher: catalogData?.publisher || null,
-            // Only show scraped Metacritic score (no IGDB fallback)
+            director: catalogData?.director || null,
             metacriticScore: catalogData?.opencriticScore && catalogData.opencriticScore > 0 ? catalogData.opencriticScore : null,
             catalogGenres: catalogData?.genres || null,
+            platforms: catalogData?.platforms ? JSON.parse(catalogData.platforms) : [game.platform],
+            sagaGames,
+            sagaId: catalogData?.sagaId,
+            sagaName: catalogData?.sagaName,
+            versions,
+            reviews
         };
 
         return NextResponse.json(responseData);
