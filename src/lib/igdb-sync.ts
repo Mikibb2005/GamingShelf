@@ -10,7 +10,7 @@ const MAX_GAMES_PER_SYNC = 50;
  * Syncs new games from IGDB if 48h have passed since last sync.
  * Returns status object.
  */
-export async function syncNewGamesFromIGDB() {
+export async function syncNewGamesFromIGDB(force = false) {
     try {
         // 1. Check last sync time
         let lastSyncSetting = await prisma.systemSettings.findUnique({
@@ -20,8 +20,8 @@ export async function syncNewGamesFromIGDB() {
         const now = Date.now();
         const lastSyncTime = lastSyncSetting?.updatedAt.getTime() || 0;
 
-        // If synced recently, skip
-        if (lastSyncSetting && (now - lastSyncTime < SYNC_INTERVAL_MS)) {
+        // If synced recently, skip (unless forced)
+        if (!force && lastSyncSetting && (now - lastSyncTime < SYNC_INTERVAL_MS)) {
             return { skipped: true, reason: "Synced recently", nextSyncDiff: SYNC_INTERVAL_MS - (now - lastSyncTime) };
         }
 
