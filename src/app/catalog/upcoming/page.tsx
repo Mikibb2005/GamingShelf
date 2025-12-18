@@ -1,43 +1,33 @@
-"use client";
-
-import { useState, useEffect } from "react";
+import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import CatalogGameDetail from "@/components/CatalogGameDetail";
+import { Metadata } from "next";
 
-export default function UpcomingPage() {
-    const [games, setGames] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
+export const metadata: Metadata = {
+    title: "Próximos Lanzamientos | GamingShelf",
+};
 
-    useEffect(() => {
-        async function load() {
-            try {
-                // Fetch upcoming games specifically using the new API flag
-                const res = await fetch('/api/catalog/search?upcoming=true&sort=releaseDate&page=1');
-                if (res.ok) {
-                    const data = await res.json();
+export default async function UpcomingPage({ searchParams }: { searchParams: Promise<any> }) {
+    const params = await searchParams;
+    const selectedGameId = params.gameId || null;
 
-                    const list = data.results.sort((a: any, b: any) => {
-                        // Sort: Close date first, then TBDs
-                        if (!a.releaseDate && !b.releaseDate) return 0;
-                        if (!a.releaseDate) return 1;
-                        if (!b.releaseDate) return -1;
-                        return new Date(a.releaseDate).getTime() - new Date(b.releaseDate).getTime();
-                    });
-
-                    setGames(list);
-                }
-            } catch (e) {
-                console.error(e);
-            } finally {
-                setLoading(false);
-            }
-        }
-        load();
-    }, []);
+    // Fetch upcoming games
+    const upcomingGames = await prisma.gameCatalog.findMany({
+        where: {
+            OR: [
+                { releaseDate: { gte: new Date() } },
+                { releaseDate: null, igdbId: { not: null } }
+            ]
+        },
+        orderBy: [
+            { releaseDate: { sort: 'asc', nulls: 'last' } },
+            { releaseYear: { sort: 'asc', nulls: 'last' } }
+        ],
+        take: 100
+    });
 
     // Helper to group by month
-    const grouped = games.reduce((acc: any, game: any) => {
+    const grouped = upcomingGames.reduce((acc: any, game: any) => {
         const date = game.releaseDate ? new Date(game.releaseDate) : null;
         const key = date
             ? date.toLocaleString('es-ES', { month: 'long', year: 'numeric' })
@@ -62,59 +52,59 @@ export default function UpcomingPage() {
                 </p>
             </div>
 
-            {loading ? (
-                <div style={{ padding: '5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                    Consultando el futuro...
-                </div>
-            ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
-                    {Object.keys(grouped).map(month => (
-                        <section key={month}>
-                            <h2 style={{
-                                fontSize: '1.5rem',
-                                borderLeft: '4px solid var(--primary)',
-                                paddingLeft: '1rem',
-                                marginBottom: '1.5rem',
-                                textTransform: 'capitalize'
-                            }}>
-                                {month}
-                            </h2>
-                            <div className="game-grid">
-                                {grouped[month].map((game: any) => (
-                                    <div
-                                        key={game.id}
-                                        className="card game-card"
-                                        onClick={() => setSelectedGameId(game.id)}
-                                        style={{ cursor: 'pointer' }}
-                                    >
-                                        <div style={{
-                                            aspectRatio: '3/4',
-                                            background: `url(${game.coverUrl}) center/cover`,
-                                            borderRadius: 'var(--radius-md) var(--radius-md) 0 0'
-                                        }}></div>
-                                        <div style={{ padding: '1rem' }}>
-                                            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.5rem' }}>{game.title}</h3>
-                                            <div style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 600 }}>
-                                                {game.releaseDate ? new Date(game.releaseDate).toLocaleDateString() : 'TBD'}
-                                            </div>
-                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                                                {game.developer || 'Desarrollador desconocido'}
-                                            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
+                {Object.keys(grouped).map(month => (
+                    <section key={month}>
+                        <h2 style={{
+                            fontSize: '1.5rem',
+                            borderLeft: '4px solid var(--primary)',
+                            paddingLeft: '1rem',
+                            marginBottom: '1.5rem',
+                            textTransform: 'capitalize'
+                        }}>
+                            {month}
+                        </h2>
+                        <div className="game-grid">
+                            {grouped[month].map((game: any) => (
+                                <Link
+                                    key={game.id}
+                                    href={`/catalog/upcoming?gameId=${game.id}`}
+                                    className="card game-card"
+                                    style={{ cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}
+                                >
+                                    <div style={{
+                                        aspectRatio: '3/4',
+                                        background: game.coverUrl ? `url(${game.coverUrl}) center/cover` : 'var(--bg-subtle)',
+                                        borderRadius: 'var(--radius-md) var(--radius-md) 0 0'
+                                    }}></div>
+                                    <div style={{ padding: '1rem' }}>
+                                        <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.5rem' }}>{game.title}</h3>
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 600 }}>
+                                            {game.releaseDate ? new Date(game.releaseDate).toLocaleDateString() : 'TBD'}
+                                        </div>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                                            {game.developer || 'Desarrollador desconocido'}
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        </section>
-                    ))}
-                </div>
-            )}
+                                </Link>
+                            ))}
+                        </div>
+                    </section>
+                ))}
+                {upcomingGames.length === 0 && (
+                    <div style={{ padding: '5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        No hay lanzamientos próximos registrados.
+                    </div>
+                )}
+            </div>
 
             {selectedGameId && (
                 <CatalogGameDetail
                     id={selectedGameId}
-                    onClose={() => setSelectedGameId(null)}
+                    onCloseRedirect="/catalog/upcoming"
                 />
             )}
         </div>
     );
 }
+

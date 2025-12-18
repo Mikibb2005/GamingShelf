@@ -20,10 +20,11 @@ interface GameDetails {
 
 interface Props {
     id: string;
-    onClose: () => void;
+    onClose?: () => void;
+    onCloseRedirect?: string;
 }
 
-export default function CatalogGameDetail({ id, onClose }: Props) {
+export default function CatalogGameDetail({ id, onClose, onCloseRedirect }: Props) {
     const router = useRouter();
 
     const [game, setGame] = useState<GameDetails | null>(null);
@@ -82,6 +83,14 @@ export default function CatalogGameDetail({ id, onClose }: Props) {
         load();
     }, [id]);
 
+    const handleClose = () => {
+        if (onCloseRedirect) {
+            router.push(onCloseRedirect);
+        } else if (onClose) {
+            onClose();
+        }
+    };
+
     const handleAddGame = async () => {
         if (!game || !selectedPlatform) return;
 
@@ -105,7 +114,7 @@ export default function CatalogGameDetail({ id, onClose }: Props) {
 
             if (res.ok) {
                 const newGame = await res.json();
-                onClose();
+                handleClose();
                 router.push(`/game/${newGame.id}`);
             } else {
                 alert("Error al añadir juego");
@@ -119,7 +128,7 @@ export default function CatalogGameDetail({ id, onClose }: Props) {
 
     const handleBackdropClick = (e: React.MouseEvent) => {
         if (e.target === e.currentTarget) {
-            onClose();
+            handleClose();
         }
     };
 
@@ -150,7 +159,7 @@ export default function CatalogGameDetail({ id, onClose }: Props) {
                 }} onClick={e => e.stopPropagation()}>
 
                     <button
-                        onClick={onClose}
+                        onClick={handleClose}
                         style={{
                             position: 'absolute', top: '1rem', right: '1rem',
                             zIndex: 10,

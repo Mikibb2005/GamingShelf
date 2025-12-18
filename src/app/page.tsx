@@ -1,37 +1,77 @@
-"use client";
-
-import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import Link from "next/link";
 import Image from "next/image";
 import GameCard from "@/components/GameCard";
+import { Metadata } from "next";
 
-export default function Home() {
-  const { data: session } = useSession();
-  const [data, setData] = useState<any>({ featured: [], upcoming: [], playing: [], reviews: [] });
-  const [loading, setLoading] = useState(true);
+export const metadata: Metadata = {
+  title: "Inicio | GamingShelf",
+};
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await fetch('/api/home');
-        if (res.ok) {
-          setData(await res.json());
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
+export default async function Home() {
+  const session = await auth();
+
+  // 1. Featured (Recent Hits)
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+  const featured = await prisma.gameCatalog.findMany({
+    where: {
+      releaseDate: {
+        gte: sixMonthsAgo,
+        lte: new Date()
       }
+    },
+    orderBy: [
+      { opencriticScore: { sort: 'desc', nulls: 'last' } },
+      { metacritic: { sort: 'desc', nulls: 'last' } },
+      { releaseDate: 'desc' }
+    ],
+    take: 12
+  });
+
+  // 2. Upcoming
+  const upcoming = await prisma.gameCatalog.findMany({
+    where: {
+      OR: [
+        { releaseDate: { gt: new Date() } },
+        { releaseDate: null, releaseYear: { gte: new Date().getFullYear() } },
+        { releaseDate: null, releaseYear: null }
+      ],
+      igdbId: { not: null }
+    },
+    orderBy: [
+      { releaseDate: { sort: 'asc', nulls: 'last' } },
+      { releaseYear: { sort: 'asc', nulls: 'last' } }
+    ],
+    take: 15
+  });
+
+  // 3. Playing (User)
+  let playing: any[] = [];
+  if (session?.user?.id) {
+    playing = await prisma.game.findMany({
+      where: {
+        userId: session.user.id,
+        status: 'playing'
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 10
+    });
+  }
+
+  // 4. Recent Reviews
+  const reviews = await prisma.comment.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: 10,
+    include: {
+      user: { select: { username: true, id: true, isProfilePublic: true } },
+      game: { select: { title: true, coverUrl: true, id: true } }
     }
-    load();
-  }, []);
+  });
 
   const userName = session?.user?.name || "Jugador";
-
-  if (loading) {
-    return <div className="container" style={{ paddingTop: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>Cargando Portada...</div>;
-  }
 
   return (
     <div className="container" style={{ paddingTop: '2rem', paddingBottom: '4rem' }}>
@@ -60,7 +100,7 @@ export default function Home() {
           display: 'flex', gap: '1.5rem', overflowX: 'auto', paddingBottom: '1rem',
           scrollbarWidth: 'none', msOverflowStyle: 'none'
         }}>
-          {data.featured.map((game: any, index: number) => (
+          {featured.map((game: any, index: number) => (
             <Link href={`/catalog/${game.id}`} key={game.id} style={{
               minWidth: '220px', width: '220px', textDecoration: 'none', color: 'inherit',
               flexShrink: 0
@@ -97,7 +137,7 @@ export default function Home() {
               </div>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{game.title}</h3>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                <span>{new Date(game.releaseDate).getFullYear()}</span>
+                <span>{game.releaseDate ? new Date(game.releaseDate).getFullYear() : 'N/A'}</span>
                 <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{game.developer}</span>
               </div>
             </Link>
@@ -119,7 +159,7 @@ export default function Home() {
           display: 'flex', gap: '1.5rem', overflowX: 'auto', paddingBottom: '1rem',
           scrollbarWidth: 'none', msOverflowStyle: 'none'
         }}>
-          {data.upcoming.map((game: any) => (
+          {upcoming.map((game: any) => (
             <Link href={`/catalog/${game.id}`} key={game.id} style={{
               minWidth: '220px', width: '220px', textDecoration: 'none', color: 'inherit',
               flexShrink: 0
@@ -164,7 +204,7 @@ export default function Home() {
               </div>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{game.title}</h3>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                Lanzamiento: <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{new Date(game.releaseDate).toLocaleDateString()}</span>
+                Lanzamiento: <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{game.releaseDate ? new Date(game.releaseDate).toLocaleDateString() : 'TBD'}</span>
               </div>
             </Link>
           ))}
@@ -176,9 +216,9 @@ export default function Home() {
         <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           🕹️ Jugando Ahora
         </h2>
-        {data.playing.length > 0 ? (
+        {playing.length > 0 ? (
           <div className="game-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
-            {data.playing.map((game: any) => (
+            {playing.map((game: any) => (
               <GameCard
                 key={game.id}
                 id={game.id}
@@ -208,7 +248,7 @@ export default function Home() {
           💬 Reseñas de la Comunidad
         </h2>
         <div className="game-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
-          {data.reviews.map((review: any) => (
+          {reviews.map((review: any) => (
             <div key={review.id} className="glass-panel" style={{ padding: '1.5rem', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {/* User & Game Header */}
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -242,7 +282,7 @@ export default function Home() {
               </div>
             </div>
           ))}
-          {data.reviews.length === 0 && (
+          {reviews.length === 0 && (
             <div className="glass-panel" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', borderRadius: 'var(--radius-md)' }}>
               <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '1rem' }}>
                 Aún no hay reseñas.
@@ -256,3 +296,4 @@ export default function Home() {
     </div>
   );
 }
+
