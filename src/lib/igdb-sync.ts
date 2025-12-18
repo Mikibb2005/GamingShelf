@@ -50,10 +50,22 @@ export async function syncNewGamesFromIGDB(force = false) {
         const games = await igdbFetch("games", query);
 
         if (!games || !Array.isArray(games) || games.length === 0) {
-            console.log("[IGDB Sync] No new games found.");
-            // Update timestamp even if no games, to avoid constant checking
-            await updateLastSyncTime();
-            return { success: true, count: 0 };
+            const clientId = process.env.TV_CLIENT_ID ? "Configured" : "Missing";
+            const clientSecret = process.env.TV_CLIENT_SECRET ? "Configured" : "Missing";
+
+            console.log("[IGDB Sync] No games found. ENV Check:", { clientId, clientSecret });
+
+            return {
+                success: true,
+                count: 0,
+                message: "No se encontraron juegos en IGDB",
+                debug: {
+                    env: { clientId, clientSecret },
+                    startTime,
+                    startTimeDate: new Date(startTime * 1000).toISOString(),
+                    query: query.trim()
+                }
+            };
         }
 
         console.log(`[IGDB Sync] Found ${games.length} new games.`);
