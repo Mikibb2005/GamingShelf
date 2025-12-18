@@ -19,19 +19,15 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 export default async function CatalogDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
 
-    // We can reuse the client component but in "page" mode if we want, 
-    // OR just render the premium UI here for SEO/Server-side benefits.
-    // For now, let's use the client component 'CatalogGameDetail' which 
-    // we already perfected, but we need to tell it it's NOT a modal.
-
-    // Actually, let's just render the same layout logic but as a page.
-    // To avoid duplication, I'll update CatalogGameDetail to support a "static" mode 
-    // or just make this page a wrapper that triggers the modal logic but full-screen.
-
+    /**
+     * Catalog Game Detail Page
+     * 
+     * This page serves as a full-screen wrapper for the unified CatalogGameDetail component.
+     * It provides a consistent premium experience as the modal view but in a standalone route.
+     */
     return (
         <div style={{ minHeight: '100vh', background: 'var(--bg-app)' }}>
-            <CatalogGameDetail id={id} onCloseRedirect="/catalog" />
+            <CatalogGameDetail id={id} variant="catalog" onCloseRedirect="/catalog" />
         </div>
     );
 }
-
