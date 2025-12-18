@@ -5,9 +5,9 @@ import { prisma } from "@/lib/prisma";
 // GET: Check if current user follows this user
 export async function GET(
     request: Request,
-    { params }: { params: Promise<{ username: string }> }
+    context: { params: Promise<{ username: string }> }
 ) {
-    const { username } = await params;
+    const { username } = await context.params;
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -37,9 +37,9 @@ export async function GET(
 // POST: Follow user
 export async function POST(
     request: Request,
-    { params }: { params: Promise<{ username: string }> }
+    context: { params: Promise<{ username: string }> }
 ) {
-    const { username } = await params;
+    const { username } = await context.params;
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -77,9 +77,9 @@ export async function POST(
 // DELETE: Unfollow user
 export async function DELETE(
     request: Request,
-    { params }: { params: Promise<{ username: string }> }
+    context: { params: Promise<{ username: string }> }
 ) {
-    const { username } = await params;
+    const { username } = await context.params;
     const session = await auth();
 
     if (!session?.user?.id) {

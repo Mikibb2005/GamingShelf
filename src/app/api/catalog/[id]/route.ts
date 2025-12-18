@@ -4,9 +4,9 @@ import { prisma } from "@/lib/prisma";
 // GET: Fetch single catalog item by ID
 export async function GET(
     request: Request,
-    { params }: { params: Promise<{ id: string }> }
+    context: { params: Promise<{ id: string }> }
 ) {
-    const { id } = await params;
+    const { id } = await context.params;
 
     try {
         const game = await prisma.gameCatalog.findUnique({

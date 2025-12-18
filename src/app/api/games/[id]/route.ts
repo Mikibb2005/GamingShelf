@@ -6,9 +6,9 @@ import { normalizeText } from "@/lib/normalize";
 // GET: Get game details
 export async function GET(
     request: Request,
-    { params }: { params: Promise<{ id: string }> }
+    context: { params: Promise<{ id: string }> }
 ) {
-    const { id } = await params;
+    const { id } = await context.params;
 
     const game = await prisma.game.findUnique({
         where: { id },
@@ -63,9 +63,9 @@ export async function GET(
 // PATCH: Update game (playtime, progress, status, rating)
 export async function PATCH(
     request: Request,
-    { params }: { params: Promise<{ id: string }> }
+    context: { params: Promise<{ id: string }> }
 ) {
-    const { id } = await params;
+    const { id } = await context.params;
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -105,9 +105,9 @@ export async function PATCH(
 // DELETE: Remove game from library
 export async function DELETE(
     request: Request,
-    { params }: { params: Promise<{ id: string }> }
+    context: { params: Promise<{ id: string }> }
 ) {
-    const { id } = await params;
+    const { id } = await context.params;
     const session = await auth();
 
     if (!session?.user?.id) {
