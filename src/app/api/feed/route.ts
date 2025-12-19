@@ -21,19 +21,27 @@ export async function GET() {
         return NextResponse.json([]);
     }
 
-    // Get recent games from followed users
-    const games = await prisma.game.findMany({
-        where: {
-            userId: { in: followingIds }
-        },
-        include: {
-            user: {
-                select: { username: true }
-            }
-        },
-        orderBy: { updatedAt: 'desc' },
-        take: 50
-    });
+    // Get recent games and posts from followed users in parallel
+    const [games, posts] = await Promise.all([
+        prisma.game.findMany({
+            where: { userId: { in: followingIds } },
+            include: { user: { select: { username: true } } },
+            orderBy: { updatedAt: 'desc' },
+            take: 25
+        }),
+        prisma.post.findMany({
+            where: { userId: { in: followingIds } },
+            include: { user: { select: { username: true } } },
+            orderBy: { createdAt: 'desc' },
+            take: 25
+        })
+    ]);
 
-    return NextResponse.json(games);
+    // Combine and sort by date
+    const feed = [
+        ...games.map(g => ({ ...g, type: 'game_update', date: g.updatedAt })),
+        ...posts.map(p => ({ ...p, type: 'social_post', date: p.createdAt }))
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    return NextResponse.json(feed);
 }

@@ -29,6 +29,9 @@ interface GameDetails {
     userGameRating: number | null;
     progress?: number;
     playtimeMinutes?: number;
+    startedAt?: string | null;
+    finishedAt?: string | null;
+    timeToBeat?: number | null;
     reviews: any[];
 }
 
@@ -51,10 +54,18 @@ export default function CatalogGameDetail({ id, variant = 'catalog', onClose, on
     const [selectedImage, setSelectedImage] = useState<number | null>(null);
     const [adding, setAdding] = useState(false);
 
-    // Bitácora states
+    // Bitácora & Library states
     const [personalComments, setPersonalComments] = useState<any[]>([]);
     const [newComment, setNewComment] = useState("");
     const [deleting, setDeleting] = useState(false);
+
+    // Editable Library data
+    const [libStartedAt, setLibStartedAt] = useState<string>("");
+    const [libFinishedAt, setLibFinishedAt] = useState<string>("");
+    const [libProgress, setLibProgress] = useState(0);
+    const [libStatus, setLibStatus] = useState("unplayed");
+    const [libPlaytime, setLibPlaytime] = useState(0);
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         if (!onClose && !onCloseRedirect) return; // Not a modal
@@ -86,6 +97,12 @@ export default function CatalogGameDetail({ id, variant = 'catalog', onClose, on
 
                     // Fetch personal comments if in library mode
                     if (variant === 'library') {
+                        setLibProgress(data.progress || 0);
+                        setLibStatus(data.status || 'unplayed');
+                        setLibPlaytime(data.playtimeMinutes || 0);
+                        if (data.startedAt) setLibStartedAt(new Date(data.startedAt).toISOString().split('T')[0]);
+                        if (data.finishedAt) setLibFinishedAt(new Date(data.finishedAt).toISOString().split('T')[0]);
+
                         const resComments = await fetch(`/api/comments?gameId=${id}`);
                         if (resComments.ok) setPersonalComments(await resComments.json());
                     }
@@ -175,6 +192,25 @@ export default function CatalogGameDetail({ id, variant = 'catalog', onClose, on
         finally { setDeleting(false); }
     };
 
+    const handleUpdateLibrary = async (updates: any) => {
+        setSaving(true);
+        try {
+            const res = await fetch(`/api/games/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updates)
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                // Optionally update local state if needed
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setSaving(false);
+        }
+    };
+
     if (loading) return (
         <div style={{ padding: '4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
             <div className="loader">Cargando detalles...</div>
@@ -193,33 +229,33 @@ export default function CatalogGameDetail({ id, variant = 'catalog', onClose, on
         display: 'flex',
         justifyContent: 'center',
         overflowY: isModal ? 'auto' : 'visible',
-        padding: isModal ? '2rem 1rem' : '2rem 0',
-        backdropFilter: isModal ? 'blur(10px)' : 'none',
-        background: isModal ? 'rgba(0,0,0,0.4)' : 'transparent',
+        padding: isModal ? '4rem 1.5rem' : '4rem 0',
+        backdropFilter: isModal ? 'blur(20px)' : 'none',
+        background: isModal ? 'rgba(0,0,0,0.6)' : 'transparent',
     };
 
     return (
         <div style={containerStyle} onClick={(e) => isModal && e.target === e.currentTarget && handleClose()}>
-            {/* Background Blur Hero */}
+            {/* Background Blur Hero (Visual Core) */}
             <div style={{
                 position: 'fixed', inset: 0, zIndex: -1,
                 backgroundImage: `url(${mainScreenshot})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
-                filter: 'blur(50px) brightness(0.2)',
-                transform: 'scale(1.15)'
+                filter: 'blur(60px) brightness(0.25)',
+                transform: 'scale(1.2)'
             }} />
 
             <div className="glass-panel" style={{
-                width: '100%', maxWidth: '1100px',
-                borderRadius: 'var(--radius-xl)',
+                width: '100%', maxWidth: '1150px',
+                borderRadius: '35px',
                 overflow: 'hidden',
-                background: 'rgba(15, 15, 18, 0.85)',
+                background: 'rgba(15, 15, 20, 0.7)',
                 border: '1px solid rgba(255,255,255,0.08)',
                 height: 'fit-content',
-                boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.9)',
+                boxShadow: '0 40px 100px -20px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(255,255,255,0.05)',
                 margin: '0 auto',
-                animation: 'fadeIn 0.5s ease-out'
+                animation: 'modalSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
             }}>
                 {/* Hero section */}
                 <div style={{ position: 'relative', height: '450px', overflow: 'hidden' }}>
@@ -276,6 +312,14 @@ export default function CatalogGameDetail({ id, variant = 'catalog', onClose, on
                                 <span style={{ fontWeight: 700, color: 'white' }}>{game.releaseYear}</span>
                                 <span style={{ opacity: 0.3 }}>•</span>
                                 <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{game.developer}</span>
+                                {game.timeToBeat && (
+                                    <>
+                                        <span style={{ opacity: 0.3 }}>•</span>
+                                        <span style={{ fontSize: '1rem', fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>
+                                            ⏱️ {game.timeToBeat > 60 ? `${(game.timeToBeat / 60).toFixed(1)}h` : `${game.timeToBeat}m`}
+                                        </span>
+                                    </>
+                                )}
                                 {game.metacriticScore && (
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                         <span style={{ opacity: 0.3 }}>•</span>
@@ -312,20 +356,91 @@ export default function CatalogGameDetail({ id, variant = 'catalog', onClose, on
                                     )}
 
                                     {variant === 'library' && (
-                                        <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '0.2rem' }}>
-                                                <span style={{ fontSize: '0.8rem', opacity: 0.5 }}>PROGRESO</span>
-                                                <span style={{ fontSize: '1.6rem', fontWeight: 900, color: 'white' }}>{game.progress || 0}%</span>
+                                        <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.2rem', textAlign: 'left' }}>
+                                            {/* Status Selector */}
+                                            <div>
+                                                <label style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>ESTADO</label>
+                                                <select
+                                                    value={libStatus}
+                                                    onChange={(e) => {
+                                                        const newVal = e.target.value;
+                                                        setLibStatus(newVal);
+                                                        handleUpdateLibrary({ status: newVal });
+                                                    }}
+                                                    style={{ width: '100%', marginTop: '0.4rem', padding: '0.6rem', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}
+                                                >
+                                                    <option value="unplayed">SIN JUGAR</option>
+                                                    <option value="playing">JUGANDO</option>
+                                                    <option value="paused">PAUSADO</option>
+                                                    <option value="completed">TERMINADO</option>
+                                                    <option value="dropped">ABANDONADO</option>
+                                                    <option value="platinum">PLATINANDO (100%)</option>
+                                                </select>
                                             </div>
-                                            <div style={{ height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
-                                                <div style={{ height: '100%', width: `${game.progress || 0}%`, background: 'var(--primary)', boxShadow: '0 0 10px var(--primary)' }} />
+
+                                            {/* Progress Slider */}
+                                            <div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                                                    <label style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>PROGRESO</label>
+                                                    <span style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--primary)' }}>{libProgress}%</span>
+                                                </div>
+                                                <input
+                                                    type="range" min="0" max="100"
+                                                    value={libProgress}
+                                                    onChange={(e) => setLibProgress(parseInt(e.target.value))}
+                                                    onMouseUp={() => handleUpdateLibrary({ progress: libProgress })}
+                                                    onTouchEnd={() => handleUpdateLibrary({ progress: libProgress })}
+                                                    style={{ width: '100%', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                                                />
                                             </div>
+
+                                            {/* Dates */}
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                                <div>
+                                                    <label style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>EMPEZADO</label>
+                                                    <input
+                                                        type="date"
+                                                        value={libStartedAt}
+                                                        onChange={(e) => {
+                                                            setLibStartedAt(e.target.value);
+                                                            handleUpdateLibrary({ startedAt: e.target.value });
+                                                        }}
+                                                        style={{ width: '100%', marginTop: '0.4rem', padding: '0.5rem', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid rgba(255,255,255,0.1)', fontSize: '0.8rem' }}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>ACABADO</label>
+                                                    <input
+                                                        type="date"
+                                                        value={libFinishedAt}
+                                                        onChange={(e) => {
+                                                            setLibFinishedAt(e.target.value);
+                                                            handleUpdateLibrary({ finishedAt: e.target.value });
+                                                        }}
+                                                        style={{ width: '100%', marginTop: '0.4rem', padding: '0.5rem', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid rgba(255,255,255,0.1)', fontSize: '0.8rem' }}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Playtime */}
+                                            <div>
+                                                <label style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>MINUTOS JUGADOS</label>
+                                                <input
+                                                    type="number"
+                                                    value={libPlaytime}
+                                                    onChange={(e) => setLibPlaytime(parseInt(e.target.value) || 0)}
+                                                    onBlur={() => handleUpdateLibrary({ playtimeMinutes: libPlaytime })}
+                                                    style={{ width: '100%', marginTop: '0.4rem', padding: '0.6rem', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid rgba(255,255,255,0.1)' }}
+                                                />
+                                            </div>
+
+                                            {saving && <div style={{ fontSize: '0.7rem', color: 'var(--primary)', textAlign: 'center', fontWeight: 700 }}>Guardando cambios...</div>}
 
                                             <button
                                                 onClick={handleDelete}
                                                 disabled={deleting}
                                                 style={{
-                                                    marginTop: '1.5rem', background: 'rgba(255,80,80,0.08)', color: '#ff6b6b',
+                                                    marginTop: '1rem', background: 'rgba(255,80,80,0.08)', color: '#ff6b6b',
                                                     border: '1px solid rgba(255,80,80,0.2)', padding: '0.8rem', borderRadius: '10px',
                                                     fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer'
                                                 }}
@@ -456,16 +571,16 @@ export default function CatalogGameDetail({ id, variant = 'catalog', onClose, on
                                 <div style={{ background: 'rgba(255,255,255,0.04)', padding: '2.5rem', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.08)' }}>
                                     <div style={{ marginBottom: '2rem' }}>
                                         <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '0.6rem', fontWeight: 800 }}>Desarrollador</div>
-                                        <div style={{ color: 'var(--primary)', fontWeight: 800, fontSize: '1.2rem' }}>{game.developer}</div>
+                                        <Link href={`/catalog?developer=${encodeURIComponent(game.developer || '')}`} style={{ color: 'var(--primary)', fontWeight: 800, fontSize: '1.2rem', textDecoration: 'none' }} className="hover-link">{game.developer}</Link>
                                     </div>
                                     <div style={{ marginBottom: '2rem' }}>
                                         <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '0.6rem', fontWeight: 800 }}>Editor</div>
-                                        <div style={{ color: 'white', fontWeight: 700, fontSize: '1.1rem' }}>{game.publisher}</div>
+                                        <Link href={`/catalog?publisher=${encodeURIComponent(game.publisher || '')}`} style={{ color: 'white', fontWeight: 700, fontSize: '1.1rem', textDecoration: 'none' }} className="hover-link">{game.publisher}</Link>
                                     </div>
                                     {game.director && (
                                         <div style={{ marginBottom: '2rem' }}>
                                             <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '0.6rem', fontWeight: 800 }}>Director</div>
-                                            <div style={{ color: 'white', fontWeight: 700, fontSize: '1.1rem' }}>{game.director}</div>
+                                            <Link href={`/catalog?director=${encodeURIComponent(game.director || '')}`} style={{ color: 'white', fontWeight: 700, fontSize: '1.1rem', textDecoration: 'none' }} className="hover-link">{game.director}</Link>
                                         </div>
                                     )}
                                     <div>

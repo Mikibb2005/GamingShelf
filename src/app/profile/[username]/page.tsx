@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import GameCard from "@/components/GameCard";
 import { UnifiedGame } from "@/services/adapters/types";
 import ProgressBar from "@/components/ProgressBar";
@@ -23,6 +24,7 @@ interface UserProfile {
         following: number;
     };
     recentGames: any[];
+    topRatedGames?: any[];
 }
 
 export default function ProfilePage() {
@@ -151,16 +153,18 @@ export default function ProfilePage() {
                         </div>
 
                         {profile.favoritePlatforms && profile.favoritePlatforms.length > 0 && (
-                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                {profile.favoritePlatforms.map(p => (
+                            <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                                {profile.favoritePlatforms.slice(0, 10).map(p => (
                                     <span key={p} style={{
-                                        padding: '4px 12px',
-                                        background: 'rgba(var(--primary-rgb), 0.1)',
-                                        color: 'var(--primary)',
-                                        borderRadius: 'var(--radius-full)',
-                                        fontSize: '0.85rem',
-                                        fontWeight: 600,
-                                        border: '1px solid rgba(var(--primary-rgb), 0.2)'
+                                        padding: '6px 14px',
+                                        background: 'rgba(255,255,255,0.05)',
+                                        color: 'rgba(255,255,255,0.8)',
+                                        borderRadius: '10px',
+                                        fontSize: '0.8rem',
+                                        fontWeight: 800,
+                                        border: '1px solid rgba(255,255,255,0.1)',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.5px'
                                     }}>
                                         {p}
                                     </span>
@@ -225,37 +229,88 @@ export default function ProfilePage() {
             </div>
 
             {/* Showcases */}
-            {profile.showcases.map(showcase => (
-                <div key={showcase.id} style={{ marginBottom: '3rem' }}>
-                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        ✨ {showcase.title}
-                    </h2>
+            {profile.showcases.length > 0 && (
+                <div style={{ marginBottom: '4rem' }}>
+                    {profile.showcases.map(showcase => (
+                        <div key={showcase.id} style={{ marginBottom: '3rem' }}>
+                            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <span style={{ color: 'var(--primary)' }}>✨</span> {showcase.title}
+                            </h2>
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                                gap: '1.5rem'
+                            }}>
+                                {showcase.games.map((game: any) => (
+                                    <GameCard
+                                        key={game.id}
+                                        id={game.id}
+                                        title={game.title}
+                                        platform={game.platform}
+                                        status={game.status}
+                                        progress={game.progress}
+                                        coverGradient={game.coverUrl}
+                                        releaseYear={game.releaseYear}
+                                        achievements={game.achievements ? JSON.parse(game.achievements) : undefined}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Ranking Top 10 */}
+            {(profile.topRatedGames || []).length > 0 && (
+                <div style={{ marginBottom: '4rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <h2 style={{ fontSize: '1.8rem', fontWeight: 900 }}>🏆 Mi Top 10</h2>
+                        <span style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>Basado en mis valoraciones</span>
+                    </div>
                     <div style={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
                         gap: '1rem'
                     }}>
-                        {showcase.games.map((game: any) => (
-                            <GameCard
-                                key={game.id}
-                                id={game.id}
-                                title={game.title}
-                                platform={game.platform}
-                                status={game.status}
-                                progress={game.progress}
-                                coverGradient={game.coverUrl}
-                                releaseYear={game.releaseYear}
-                                achievements={game.achievements ? JSON.parse(game.achievements) : undefined}
-                            />
+                        {(profile.topRatedGames || []).map((game: any, index: number) => (
+                            <Link key={game.id} href={`/game/${game.id}`} style={{ textDecoration: 'none' }}>
+                                <div className="glass-panel hover-lift" style={{
+                                    display: 'flex', gap: '1rem', padding: '1rem', alignItems: 'center',
+                                    borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)',
+                                    transition: 'transform 0.2s',
+                                    position: 'relative'
+                                }}>
+                                    <div style={{
+                                        position: 'absolute', top: '-10px', left: '-10px',
+                                        width: '32px', height: '32px', borderRadius: '50%',
+                                        background: index === 0 ? 'gold' : index === 1 ? '#C0C0C0' : index === 2 ? '#CD7F32' : 'rgba(255,255,255,0.1)',
+                                        color: index < 3 ? 'black' : 'white',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontWeight: 900, fontSize: '0.9rem', zIndex: 2,
+                                        boxShadow: '0 4px 10px rgba(0,0,0,0.3)'
+                                    }}>
+                                        {index + 1}
+                                    </div>
+                                    <div style={{ width: '50px', height: '70px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}>
+                                        <img src={game.coverUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ color: 'white', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{game.title}</div>
+                                        <div style={{ color: 'var(--primary)', fontWeight: 900, fontSize: '1.2rem' }}>{game.rating}/100</div>
+                                    </div>
+                                </div>
+                            </Link>
                         ))}
                     </div>
-                    {showcase.games.length === 0 && (
-                        <div style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Este showcase está vacío.</div>
-                    )}
                 </div>
-            ))}
+            )}
 
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1.5rem' }}>Actividad Reciente</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Actividad Reciente</h2>
+                <Link href={`/profile/${username}/library`} style={{ color: 'var(--primary)', fontWeight: 800, textDecoration: 'none', fontSize: '0.9rem', letterSpacing: '1px' }}>
+                    VER BIBLIOTECA COMPLETA →
+                </Link>
+            </div>
 
             <div style={{
                 display: 'grid',

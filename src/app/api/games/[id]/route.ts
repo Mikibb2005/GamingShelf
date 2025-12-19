@@ -100,6 +100,7 @@ export const GET = auth(async function GET(req, context: any) {
             sagaGames,
             sagaId: catalogData?.sagaId,
             sagaName: catalogData?.sagaName,
+            timeToBeat: catalogData?.timeToBeat || null,
             versions,
             reviews
         };

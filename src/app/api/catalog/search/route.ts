@@ -16,9 +16,10 @@ export async function GET(request: Request) {
     const sagaId = searchParams.get("sagaId");
     const developerFilter = searchParams.get("developer");
     const publisherFilter = searchParams.get("publisher");
+    const directorFilter = searchParams.get("director");
     const parentGameId = searchParams.get("parentId");
 
-    const pageSize = 50;
+    const pageSize = parseInt(searchParams.get("pageSize") || "50");
 
     // Build where clause
     const normalizedQuery = query ? normalizeText(query) : null;
@@ -37,6 +38,7 @@ export async function GET(request: Request) {
     if (sagaId) where.sagaId = parseInt(sagaId);
     if (developerFilter) where.developer = { contains: developerFilter };
     if (publisherFilter) where.publisher = { contains: publisherFilter };
+    if (directorFilter) where.director = { contains: directorFilter };
     if (parentGameId) where.OR = [
         { parentGameId: parseInt(parentGameId) },
         { igdbId: parseInt(parentGameId) } // Include the parent itself

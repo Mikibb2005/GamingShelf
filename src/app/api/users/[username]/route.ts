@@ -59,7 +59,11 @@ export async function GET(
                 followers: user._count.followers,
                 following: user._count.following
             },
-            recentGames: user.games
+            recentGames: user.games,
+            topRatedGames: allUserGames
+                .filter(g => g.rating !== null)
+                .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+                .slice(0, 10)
         };
 
         return NextResponse.json(profileData);

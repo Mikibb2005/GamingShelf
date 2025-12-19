@@ -33,4 +33,5 @@ gametracker:
  - Poder poner foto de perfil, biografia, nombre real, otras redes sociales, etc.
  - Implementar un sistema de chat privado entre ususarios.
 
- 
+ - Quiero que en el catalogo predeterminadamente por cada paginas salgan 25 juegos, pero que haya un selector donde poder poner 25,50,75 o 100 juegos por pagina.
+- Quiero que todas las paginas de juegos sean identicas (la de home, la de catalogo, la de library, etc.) Que ademas sean ricas en informacion, poniendo la distribuidora, desarrolladora, saga (donde se pueda hacer clic para que salgan todos los juegos de esa saga, en caso de que lo sea), tambien quiero que si existe info del game director, lo pongas. Que puedas hacer clic tanto en desarrolladora, distribuidora, o game director para que salgan todos los juegos de esa empresa o director.

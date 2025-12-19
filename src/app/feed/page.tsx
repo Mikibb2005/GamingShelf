@@ -25,8 +25,7 @@ interface FeedGame {
 export default function FeedPage() {
     const { data: session, status } = useSession();
     const router = useRouter();
-    const [games, setGames] = useState<FeedGame[]>([]);
-    const [posts, setPosts] = useState<any[]>([]);
+    const [feedItems, setFeedItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     // New Post State
@@ -40,24 +39,19 @@ export default function FeedPage() {
         }
     }, [status, router]);
 
-    useEffect(() => {
-        async function loadFeed() {
-            if (!session?.user) return;
-
-            try {
-                const [resGames, resPosts] = await Promise.all([
-                    fetch("/api/feed"),
-                    fetch("/api/posts")
-                ]);
-
-                if (resGames.ok) setGames(await resGames.json());
-                if (resPosts.ok) setPosts(await resPosts.json());
-            } catch (e) {
-                console.error(e);
-            } finally {
-                setLoading(false);
-            }
+    const loadFeed = async () => {
+        if (!session?.user) return;
+        try {
+            const res = await fetch("/api/feed");
+            if (res.ok) setFeedItems(await res.json());
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoading(false);
         }
+    };
+
+    useEffect(() => {
         loadFeed();
     }, [session]);
 
@@ -72,10 +66,9 @@ export default function FeedPage() {
             });
 
             if (res.ok) {
-                const post = await res.json();
-                setPosts([post, ...posts]);
                 setNewPostImage("");
                 setNewPostCaption("");
+                loadFeed(); // Refresh feed
             }
         } catch (e) {
             console.error(e);
@@ -88,158 +81,140 @@ export default function FeedPage() {
         return <ProgressBar />;
     }
 
-    if (!session?.user) {
-        return null;
-    }
+    if (!session?.user) return null;
 
     return (
-        <div className="container" style={{ padding: '2rem 1rem' }}>
-            <header style={{ marginBottom: '2rem' }}>
-                <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '0.5rem' }}>
-                    <span className="title-gradient">Tu Feed</span>
+        <div className="container" style={{ padding: '4rem 1rem', maxWidth: '700px' }}>
+            <header style={{ marginBottom: '3rem', textAlign: 'center' }}>
+                <h1 style={{ fontSize: '2.5rem', fontWeight: 900, marginBottom: '0.5rem' }}>
+                    <span className="title-gradient">Comunidad</span>
                 </h1>
-                <p style={{ color: 'var(--text-secondary)' }}>
-                    Actividad y publicaciones de usuarios que sigues
+                <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem' }}>
+                    Descubre qué están jugando tus amigos
                 </p>
             </header>
 
-            {/* Create Post */}
-            <div className="card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem' }}>📷 Nueva Publicación</h3>
-                <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+            {/* Create Post Card */}
+            <div className="glass-panel" style={{ padding: '2rem', marginBottom: '3rem', borderRadius: '24px' }}>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '1.5rem' }}>📸</span> Comparte un momento
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <input
                         type="text"
-                        placeholder="URL de la imagen..."
+                        placeholder="URL de la imagen (Screenshot o Foto)..."
                         value={newPostImage}
                         onChange={(e) => setNewPostImage(e.target.value)}
-                        style={{ flex: 1, padding: '0.5rem', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', color: 'var(--text-main)' }}
+                        style={{ width: '100%', padding: '1rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white' }}
                     />
-                </div>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                    <input
-                        type="text"
-                        placeholder="Escribe un pie de foto..."
-                        value={newPostCaption}
-                        onChange={(e) => setNewPostCaption(e.target.value)}
-                        style={{ flex: 1, padding: '0.5rem', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', color: 'var(--text-main)' }}
-                    />
-                    <button
-                        className="btn-primary"
-                        onClick={handleCreatePost}
-                        disabled={!newPostImage || creatingPost}
-                    >
-                        {creatingPost ? 'Publicando...' : 'Publicar'}
-                    </button>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        <input
+                            type="text"
+                            placeholder="¿Qué estás pensando?"
+                            value={newPostCaption}
+                            onChange={(e) => setNewPostCaption(e.target.value)}
+                            style={{ flex: 1, padding: '1rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white' }}
+                        />
+                        <button
+                            className="btn-primary"
+                            onClick={handleCreatePost}
+                            disabled={!newPostImage || creatingPost}
+                            style={{ padding: '0 2rem', borderRadius: '12px', fontWeight: 800 }}
+                        >
+                            {creatingPost ? '...' : 'Publicar'}
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            {/* Feed Chronological List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
+                {feedItems.map((item, idx) => {
+                    const isPost = item.type === 'social_post';
 
-                {/* Posts Section */}
-                {posts.length > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                        {posts.map(post => (
-                            <div key={post.id} className="card" style={{ padding: '0', overflow: 'hidden' }}>
-                                <div style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                    <div style={{
-                                        width: '32px', height: '32px', borderRadius: '50%', background: 'var(--bg-subtle)',
-                                        backgroundImage: post.user.avatarUrl ? `url(${post.user.avatarUrl})` : undefined,
-                                        backgroundSize: 'cover'
-                                    }} />
-                                    <div style={{ fontWeight: 600 }}>{post.user.username}</div>
-                                </div>
-                                <div style={{ width: '100%', aspectRatio: '16/9', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <img src={post.imageUrl} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                                </div>
-                                <div style={{ padding: '1rem' }}>
-                                    {post.caption && <p style={{ marginBottom: '0.5rem' }}><span style={{ fontWeight: 600 }}>{post.user.username}</span> {post.caption}</p>}
-                                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{new Date(post.createdAt).toLocaleDateString()}</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* Game Activity Section */}
-                {games.length > 0 && (
-                    <div>
-                        <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem', color: 'var(--text-secondary)' }}>Actividad Reciente</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {games.map(game => (
-                                <div key={game.id} className="glass-panel" style={{
-                                    padding: '1rem',
-                                    borderRadius: 'var(--radius-md)',
-                                    display: 'flex',
-                                    gap: '1rem',
-                                    alignItems: 'center'
-                                }}>
-                                    <Link href={`/profile/${game.user.username}`} style={{
-                                        width: '40px',
-                                        height: '40px',
-                                        borderRadius: '50%',
-                                        background: 'var(--primary)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontWeight: 700,
-                                        color: 'white',
-                                        textDecoration: 'none',
-                                        flexShrink: 0
+                    if (isPost) {
+                        return (
+                            <article key={`post-${item.id}`} className="glass-panel" style={{ padding: '0', overflow: 'hidden', borderRadius: '24px' }}>
+                                <div style={{ padding: '1.2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                    <Link href={`/profile/${item.user.username}`} style={{
+                                        width: '40px', height: '40px', borderRadius: '50%',
+                                        background: 'linear-gradient(45deg, var(--primary), #ab83f7)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontWeight: 900, color: 'white', textDecoration: 'none'
                                     }}>
-                                        {game.user.username.charAt(0).toUpperCase()}
+                                        {item.user.username[0].toUpperCase()}
                                     </Link>
-
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                                            <Link href={`/profile/${game.user.username}`} style={{
-                                                fontWeight: 600,
-                                                color: 'var(--text-main)',
-                                                textDecoration: 'none'
-                                            }}>
-                                                {game.user.username}
-                                            </Link>
-                                            <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                                                está jugando
-                                            </span>
-                                        </div>
-                                        <Link href={`/game/${game.id}`} style={{
-                                            color: 'var(--primary)',
-                                            fontWeight: 600,
-                                            textDecoration: 'none'
-                                        }}>
-                                            {game.title}
-                                        </Link>
-                                        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginLeft: '0.5rem' }}>
-                                            {game.platform} • {game.progress}%
-                                        </span>
+                                    <div>
+                                        <Link href={`/profile/${item.user.username}`} style={{ fontWeight: 800, color: 'white', textDecoration: 'none' }}>{item.user.username}</Link>
+                                        <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>Hace poco</div>
                                     </div>
-
-                                    {game.achievements && (
-                                        <div style={{
-                                            background: 'var(--bg-subtle)',
-                                            padding: '0.5rem 0.75rem',
-                                            borderRadius: 'var(--radius-sm)',
-                                            fontSize: '0.85rem'
-                                        }}>
-                                            🏆 {JSON.parse(game.achievements).unlocked}/{JSON.parse(game.achievements).total}
-                                        </div>
+                                </div>
+                                <div style={{ width: '100%', aspectRatio: '4/3', background: '#000', overflow: 'hidden', position: 'relative', borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <img src={item.imageUrl} alt="Post content" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                </div>
+                                <div style={{ padding: '1.5rem' }}>
+                                    <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', fontSize: '1.5rem' }}>
+                                        <span>❤️</span> <span>💬</span> <span>✈️</span>
+                                    </div>
+                                    {item.caption && (
+                                        <p style={{ fontSize: '1rem', lineHeight: 1.6, color: 'rgba(255,255,255,0.9)', margin: 0 }}>
+                                            <span style={{ fontWeight: 800, marginRight: '0.6rem' }}>{item.user.username}</span>
+                                            {item.caption}
+                                        </p>
                                     )}
                                 </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
+                            </article>
+                        );
+                    } else {
+                        // Game Update
+                        return (
+                            <div key={`game-${item.id}`} className="glass-panel" style={{
+                                padding: '1.5rem',
+                                borderRadius: '24px',
+                                display: 'flex',
+                                gap: '1.5rem',
+                                alignItems: 'center',
+                                borderLeft: '4px solid var(--primary)'
+                            }}>
+                                <div style={{ width: '60px', height: '80px', position: 'relative', borderRadius: '10px', overflow: 'hidden', flexShrink: 0, boxShadow: '0 10px 20px rgba(0,0,0,0.5)' }}>
+                                    <img src={item.coverUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                </div>
 
-                {games.length === 0 && posts.length === 0 && (
-                    <div style={{
-                        textAlign: 'center',
-                        padding: '4rem',
-                        color: 'var(--text-muted)',
-                        border: '1px dashed var(--border)',
-                        borderRadius: 'var(--radius-md)'
-                    }}>
-                        <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>Feed vacío</h3>
-                        <p>Sigue a otros usuarios para ver su actividad aquí</p>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
+                                        <Link href={`/profile/${item.user.username}`} style={{ fontWeight: 800, color: 'white', textDecoration: 'none', borderBottom: '1px solid var(--primary)' }}>
+                                            {item.user.username}
+                                        </Link>
+                                        <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem' }}>actualizó su progreso</span>
+                                    </div>
+                                    <Link href={`/game/${item.id}`} style={{
+                                        fontSize: '1.2rem',
+                                        fontWeight: 900,
+                                        color: 'white',
+                                        textDecoration: 'none',
+                                        display: 'block',
+                                        marginBottom: '0.5rem'
+                                    }}>
+                                        {item.title}
+                                    </Link>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                                        <span style={{ fontSize: '0.8rem', fontWeight: 800, background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '4px' }}>{item.platform}</span>
+                                        <div style={{ flex: 1, height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+                                            <div style={{ height: '100%', width: `${item.progress}%`, background: 'var(--primary)', boxShadow: '0 0 10px var(--primary)' }} />
+                                        </div>
+                                        <span style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--primary)' }}>{item.progress}%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    }
+                })}
+
+                {feedItems.length === 0 && (
+                    <div style={{ textAlign: 'center', padding: '6rem 2rem', border: '2px dashed rgba(255,255,255,0.1)', borderRadius: '32px' }}>
+                        <div style={{ fontSize: '3rem', marginBottom: '1.5rem' }}>🛰️</div>
+                        <h3 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.5rem' }}>Feed Solitario</h3>
+                        <p style={{ color: 'rgba(255,255,255,0.5)' }}>Comienza a seguir a otros gamers para ver su actividad aquí.</p>
                     </div>
                 )}
             </div>

@@ -21,11 +21,13 @@ export default function CatalogPage() {
     const selectedPlatform = searchParams.get("platform") || "All";
     const includeFanGames = searchParams.get("includeFanGames") === "true";
     const selectedGameId = searchParams.get("gameId");
+    const pageSize = searchParams.get("pageSize") || "50";
 
     // Relation Filters
     const sagaId = searchParams.get("sagaId");
     const developer = searchParams.get("developer");
     const publisher = searchParams.get("publisher");
+    const director = searchParams.get("director");
 
     const updateQuery = (newParams: Record<string, string | null>) => {
         const params = new URLSearchParams(searchParams.toString());
@@ -43,6 +45,7 @@ export default function CatalogPage() {
             try {
                 const query = new URLSearchParams({
                     page: page.toString(),
+                    pageSize: pageSize.toString(),
                     q: search,
                     sort: sortBy,
                     platform: selectedPlatform,
@@ -51,6 +54,7 @@ export default function CatalogPage() {
                 if (sagaId) query.set("sagaId", sagaId);
                 if (developer) query.set("developer", developer);
                 if (publisher) query.set("publisher", publisher);
+                if (director) query.set("director", director);
 
                 const res = await fetch(`/api/catalog/search?${query.toString()}`);
                 if (res.ok) {
@@ -65,7 +69,7 @@ export default function CatalogPage() {
             }
         }
         load();
-    }, [page, search, sortBy, selectedPlatform, includeFanGames, sagaId, developer, publisher]);
+    }, [page, pageSize, search, sortBy, selectedPlatform, includeFanGames, sagaId, developer, publisher, director]);
 
     return (
         <div className="container" style={{ padding: '2rem 1rem' }}>
@@ -99,12 +103,35 @@ export default function CatalogPage() {
             </div>
 
             {/* Filters Row */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                {(sagaId || developer || publisher) && (
-                    <button onClick={() => updateQuery({ sagaId: null, developer: null, publisher: null, page: "1" })} style={{ marginRight: 'auto' }} className="btn-secondary">
-                        ✕ Limpiar Filtros Especiales
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center' }}>
+                {(sagaId || developer || publisher || director) && (
+                    <button onClick={() => updateQuery({ sagaId: null, developer: null, publisher: null, director: null, page: "1" })} style={{ marginRight: 'auto' }} className="btn-secondary">
+                        ✕ Limpiar Filtros {director ? `(${director})` : developer ? `(${developer})` : publisher ? `(${publisher})` : ''}
                     </button>
                 )}
+
+                {/* Page Size Selector */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginRight: '0.5rem' }}>
+                    <span style={{ fontSize: '0.85rem', opacity: 0.6 }}>Mostrar:</span>
+                    <select
+                        value={pageSize}
+                        onChange={(e) => updateQuery({ pageSize: e.target.value, page: "1" })}
+                        style={{
+                            padding: '0.4rem 0.6rem',
+                            borderRadius: '8px',
+                            background: 'var(--bg-subtle)',
+                            color: 'var(--text-main)',
+                            border: '1px solid var(--border)',
+                            cursor: 'pointer',
+                            fontSize: '0.9rem'
+                        }}
+                    >
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="75">75</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
 
                 {/* Platform Filter */}
                 <select
@@ -121,12 +148,30 @@ export default function CatalogPage() {
                     }}
                 >
                     <option value="All">Todas las Plataformas</option>
-                    <option value="PC">PC</option>
+                    <option value="PC">PC (Windows/Linux)</option>
                     <option value="PlayStation 5">PlayStation 5</option>
                     <option value="PlayStation 4">PlayStation 4</option>
+                    <option value="PlayStation 3">PlayStation 3</option>
+                    <option value="PlayStation 2">PlayStation 2</option>
+                    <option value="PlayStation">PlayStation</option>
                     <option value="Switch">Nintendo Switch</option>
+                    <option value="Wii U">Wii U</option>
+                    <option value="Wii">Wii</option>
+                    <option value="GameCube">GameCube</option>
+                    <option value="Nintendo 64">Nintendo 64</option>
+                    <option value="Super Nintendo">Super Nintendo</option>
+                    <option value="NES">NES</option>
                     <option value="Xbox Series X">Xbox Series X</option>
                     <option value="Xbox One">Xbox One</option>
+                    <option value="Xbox 360">Xbox 360</option>
+                    <option value="Xbox">Xbox</option>
+                    <option value="Dreamcast">Dreamcast</option>
+                    <option value="Saturn">Saturn</option>
+                    <option value="Mega Drive">Genesis / Mega Drive</option>
+                    <option value="Master System">Master System</option>
+                    <option value="Game Boy">Game Boy Family</option>
+                    <option value="Nintendo DS">Nintendo DS / 3DS</option>
+                    <option value="PSP">PSP / Vita</option>
                 </select>
 
                 <select
